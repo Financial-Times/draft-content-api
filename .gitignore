@@ -1,0 +1,6 @@
+*.iml
+.idea
+content-editorial-read*
+vendor/*/
+.project
+.vscode
