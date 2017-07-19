@@ -3,12 +3,14 @@ package main
 import (
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
-	log "github.com/sirupsen/logrus"
 	"github.com/jawher/mow.cli"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"github.com/gorilla/mux"
+	"github.com/Financial-Times/content-editorial-read/content"
 )
 
 const appDescription = "UPP Golang Microservice Template short description - please amend"
@@ -37,17 +39,30 @@ func main() {
 		EnvVar: "APP_PORT",
 	})
 
+	contentEndpoint := app.String(cli.StringOpt{
+		Name:   "content-endpoint",
+		Value:  "http://test.api.ft.com/content",
+		Desc:   "Endpoint to get content from CAPI",
+		EnvVar: "CONTENT_ENDPOINT",
+	})
+
+	contentAPIKey := app.String(cli.StringOpt{
+		Name:   "content-api-key",
+		Value:  "",
+		Desc:   "API key to access CAPI",
+		EnvVar: "CAPI_APIKEY",
+	})
+
 	log.SetLevel(log.InfoLevel)
 	log.Infof("[Startup] content-editorial-read is starting ")
 
 	app.Action = func() {
 		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
 
+		contentHandler := content.NewHandler(*contentEndpoint,*contentAPIKey)
 		go func() {
-			serveAdminEndpoints(*appSystemCode, *appName, *port)
+			serveEndpoints(*appSystemCode, *appName, *port, contentHandler)
 		}()
-
-		// todo: insert app code here
 
 		waitForSignal()
 	}
@@ -58,17 +73,18 @@ func main() {
 	}
 }
 
-func serveAdminEndpoints(appSystemCode string, appName string, port string) {
+func serveEndpoints(appSystemCode string, appName string, port string, contentHandler *content.Handler) {
 	healthService := newHealthService(&healthConfig{appSystemCode: appSystemCode, appName: appName, port: port})
 
-	serveMux := http.NewServeMux()
+	r := mux.NewRouter()
 
 	hc := health.HealthCheck{SystemCode: appSystemCode, Name: appName, Description: appDescription, Checks: healthService.checks}
-	serveMux.HandleFunc(healthPath, health.Handler(hc))
-	serveMux.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.gtgCheck))
-	serveMux.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
+	r.Handle("/content/{uuid}",contentHandler).Methods("GET")
+	r.HandleFunc(healthPath, health.Handler(hc))
+	r.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.gtgCheck))
+	r.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
 
-	if err := http.ListenAndServe(":"+port, serveMux); err != nil {
+	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalf("Unable to start: %v", err)
 	}
 }

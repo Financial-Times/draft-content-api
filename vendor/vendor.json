@@ -31,6 +31,28 @@
 			"versionExact": "0.1.0"
 		},
 		{
+			"checksumSHA1": "+sjiZBzrsk91W1A3Md1azCkZadg=",
+			"path": "github.com/Financial-Times/transactionid-utils-go",
+			"revision": "df2f00c734957c9dd651ce23ab0e0902504c7636",
+			"revisionTime": "2017-03-28T16:39:54Z",
+			"version": "v0.2.0",
+			"versionExact": "v0.2.0"
+		},
+		{
+			"checksumSHA1": "g/V4qrXjUGG9B+e3hB+4NAYJ5Gs=",
+			"path": "github.com/gorilla/context",
+			"revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
+			"revisionTime": "2016-08-17T18:46:32Z"
+		},
+		{
+			"checksumSHA1": "Ow/mLkfVIZgMOXE6aPSdPiDLJ6c=",
+			"path": "github.com/gorilla/mux",
+			"revision": "bcd8bc72b08df0f70df986b97f95590779502d31",
+			"revisionTime": "2017-05-21T04:50:13Z",
+			"version": "v1.4.0",
+			"versionExact": "v1.4.0"
+		},
+		{
 			"checksumSHA1": "tUGxc7rfX0cmhOOUDhMuAZ9rWsA=",
 			"path": "github.com/hashicorp/go-version",
 			"revision": "03c5bf6be031b6dd45afec16b1cf94fc8938bc77",
@@ -49,6 +71,12 @@
 			"revisionTime": "2017-07-13T11:42:50Z",
 			"version": "1.0.2",
 			"versionExact": "1.0.2"
+		},
+		{
+			"checksumSHA1": "dr5+PfIRzXeN+l1VG+s0lea9qz8=",
+			"path": "golang.org/x/net/context",
+			"revision": "02ac38e2528ff4adea90f184d71a3faa04b4b1b0",
+			"revisionTime": "2017-07-18T17:12:47Z"
 		},
 		{
 			"checksumSHA1": "vlicYp+fe4ECQ+5QqpAk36VRA3s=",
