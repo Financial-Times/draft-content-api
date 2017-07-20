@@ -1,6 +1,6 @@
 FROM golang:1.8-alpine
 
-ENV PROJECT=content-editorial-read
+ENV PROJECT=draft-content-api
 COPY . /${PROJECT}-sources/
 
 RUN apk --no-cache --virtual .build-dependencies add git \
@@ -29,4 +29,4 @@ RUN apk --no-cache --virtual .build-dependencies add git \
 
 WORKDIR /
 
-CMD [ "/content-editorial-read" ]
+CMD [ "/draft-content-api" ]

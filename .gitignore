@@ -1,6 +1,6 @@
 *.iml
 .idea
-content-editorial-read*
+draft-content-api*
 vendor/*/
 .project
 .vscode

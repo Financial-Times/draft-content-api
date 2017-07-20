@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Financial-Times/content-editorial-read/content"
+	"github.com/Financial-Times/draft-content-api/content"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/gorilla/mux"
@@ -16,18 +16,18 @@ import (
 const appDescription = "UPP Golang Microservice Template short description - please amend"
 
 func main() {
-	app := cli.App("content-editorial-read", appDescription)
+	app := cli.App("draft-content-api", appDescription)
 
 	appSystemCode := app.String(cli.StringOpt{
 		Name:   "app-system-code",
-		Value:  "content-editorial-read",
+		Value:  "draft-content-api",
 		Desc:   "System Code of the application",
 		EnvVar: "APP_SYSTEM_CODE",
 	})
 
 	appName := app.String(cli.StringOpt{
 		Name:   "app-name",
-		Value:  "content-editorial-read",
+		Value:  "draft-content-api",
 		Desc:   "Application name",
 		EnvVar: "APP_NAME",
 	})
@@ -54,7 +54,7 @@ func main() {
 	})
 
 	log.SetLevel(log.InfoLevel)
-	log.Infof("[Startup] content-editorial-read is starting ")
+	log.Infof("[Startup] draft-content-api is starting ")
 
 	app.Action = func() {
 		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)

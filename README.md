@@ -1,7 +1,7 @@
-# content-editorial-read
+# Draft content API
 _Should be the same as the github repo name but it isn't always._
 
-[![Circle CI](https://circleci.com/gh/Financial-Times/content-editorial-read/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/content-editorial-read/tree/master)[![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/content-editorial-read)](https://goreportcard.com/report/github.com/Financial-Times/content-editorial-read) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/content-editorial-read/badge.svg)](https://coveralls.io/github/Financial-Times/content-editorial-read)
+[![Circle CI](https://circleci.com/gh/Financial-Times/draft-content-api/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/draft-content-api/tree/master)[![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/draft-content-api)](https://goreportcard.com/report/github.com/Financial-Times/draft-content-api) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/draft-content-api/badge.svg)](https://coveralls.io/github/Financial-Times/draft-content-api)
 
 ## Introduction
 
@@ -16,8 +16,8 @@ _How can I install it_
 Download the source code, dependencies and test dependencies:
 
         go get -u github.com/kardianos/govendor
-        go get -u github.com/Financial-Times/content-editorial-read
-        cd $GOPATH/src/github.com/Financial-Times/content-editorial-read
+        go get -u github.com/Financial-Times/draft-content-api
+        cd $GOPATH/src/github.com/Financial-Times/draft-content-api
         govendor sync
         go build .
 
@@ -32,12 +32,12 @@ _How can I run it_
 
 2. Run the binary (using the `help` flag to see the available optional arguments):
 
-        $GOPATH/bin/content-editorial-read [--help]
+        $GOPATH/bin/draft-content-api [--help]
 
 Options:
 
-        --app-system-code="content-editorial-read"            System Code of the application ($APP_SYSTEM_CODE)
-        --app-name="content-editorial-read"                   Application name ($APP_NAME)
+        --app-system-code="draft-content-api"            System Code of the application ($APP_SYSTEM_CODE)
+        --app-name="draft-content-api"                   Application name ($APP_NAME)
         --port="8080"                                           Port to listen on ($APP_PORT)
         
 3. Test:
@@ -53,8 +53,8 @@ Options:
 ## Build and deployment
 _How can I build and deploy it (lots of this will be links out as the steps will be common)_
 
-* Built by Docker Hub on merge to master: [coco/content-editorial-read](https://hub.docker.com/r/coco/content-editorial-read/)
-* CI provided by CircleCI: [content-editorial-read](https://circleci.com/gh/Financial-Times/content-editorial-read)
+* Built by Docker Hub on merge to master: [coco/draft-content-api](https://hub.docker.com/r/coco/draft-content-api/)
+* CI provided by CircleCI: [draft-content-api](https://circleci.com/gh/Financial-Times/draft-content-api)
 
 ## Service endpoints
 _What are the endpoints offered by the service_
