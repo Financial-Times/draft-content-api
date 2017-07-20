@@ -1,16 +1,16 @@
 package main
 
 import (
+	"github.com/Financial-Times/content-editorial-read/content"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
+	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"github.com/gorilla/mux"
-	"github.com/Financial-Times/content-editorial-read/content"
 )
 
 const appDescription = "UPP Golang Microservice Template short description - please amend"
@@ -59,7 +59,7 @@ func main() {
 	app.Action = func() {
 		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
 
-		contentHandler := content.NewHandler(*contentEndpoint,*contentAPIKey)
+		contentHandler := content.NewHandler(*contentEndpoint, *contentAPIKey)
 		go func() {
 			serveEndpoints(*appSystemCode, *appName, *port, contentHandler)
 		}()
@@ -79,7 +79,7 @@ func serveEndpoints(appSystemCode string, appName string, port string, contentHa
 	r := mux.NewRouter()
 
 	hc := health.HealthCheck{SystemCode: appSystemCode, Name: appName, Description: appDescription, Checks: healthService.checks}
-	r.Handle("/content/{uuid}",contentHandler).Methods("GET")
+	r.Handle("/content/{uuid}", contentHandler).Methods("GET")
 	r.HandleFunc(healthPath, health.Handler(hc))
 	r.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.gtgCheck))
 	r.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)

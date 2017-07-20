@@ -4,8 +4,8 @@ import (
 	tIDUtils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
-	"io"
 	"net/http"
+	"io"
 )
 
 type Handler struct {
@@ -24,8 +24,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	tID := tIDUtils.GetTransactionIDFromRequest(r)
 
 	cAPIReq, err := http.NewRequest("GET", h.endpoint+"/"+uuid+"?apiKey="+h.apyKey, nil)
-	cAPIReq.Header = r.Header
-	cAPIReq.Header.Add(tIDUtils.TransactionIDHeader, tID)
+	// TODO FIX HEADERS
+
+	//cAPIReq.Header = r.Header
+	//cAPIReq.Header.Add(tIDUtils.TransactionIDHeader, tID)
 
 	if err != nil {
 		log.WithError(err).WithField(tIDUtils.TransactionIDKey, tID).WithField("url", h.endpoint+"/"+uuid).Error("Error in creating the http request")
