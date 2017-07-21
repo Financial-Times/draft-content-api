@@ -59,7 +59,8 @@ func main() {
 	app.Action = func() {
 		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
 
-		contentHandler := content.NewHandler(*contentEndpoint, *contentAPIKey)
+		cAPI:= content.NewContentAPI(*contentEndpoint, *contentAPIKey)
+		contentHandler := content.NewHandler(cAPI)
 		go func() {
 			serveEndpoints(*appSystemCode, *appName, *port, contentHandler)
 		}()
