@@ -12,15 +12,16 @@ import (
 const testAPIKey = "testAPIKey"
 
 var testHeaders = http.Header{
-	"Pippo":          []string{"pluto"},
+	"Pippo":   []string{"pluto"},
 	"Cartman": []string{"Kyle"},
 }
 
 func TestHappyContentAPI(t *testing.T) {
-	cAPIMock := newContentAPIMock(t, http.StatusOK, aContentBody)
-	defer cAPIMock.Close()
+	cAPIServerMock := newContentAPIServerMock(t, http.StatusOK, aContentBody)
+	defer cAPIServerMock.Close()
 
-	h := NewHandler(cAPIMock.URL, testAPIKey)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
+	h := NewHandler(cAPI)
 	r := mux.NewRouter()
 	r.Handle("/drafts/content/{uuid}", h)
 
@@ -38,10 +39,11 @@ func TestHappyContentAPI(t *testing.T) {
 }
 
 func TestContentAPI404(t *testing.T) {
-	cAPIMock := newContentAPIMock(t, http.StatusNotFound, "not found")
-	defer cAPIMock.Close()
+	cAPIServerMock := newContentAPIServerMock(t, http.StatusNotFound, "not found")
+	defer cAPIServerMock.Close()
 
-	h := NewHandler(cAPIMock.URL, testAPIKey)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
+	h := NewHandler(cAPI)
 	r := mux.NewRouter()
 	r.Handle("/drafts/content/{uuid}", h)
 
@@ -59,7 +61,8 @@ func TestContentAPI404(t *testing.T) {
 }
 
 func TestInvalidURL(t *testing.T) {
-	h := NewHandler(":#", testAPIKey)
+	cAPI := NewContentAPI(":#", testAPIKey)
+	h := NewHandler(cAPI)
 	r := mux.NewRouter()
 	r.Handle("/drafts/content/{uuid}", h)
 
@@ -77,7 +80,8 @@ func TestInvalidURL(t *testing.T) {
 }
 
 func TestConnectionError(t *testing.T) {
-	h := NewHandler("http://an-endpoint-that-does-not-exist.com", testAPIKey)
+	cAPI := NewContentAPI("http://an-endpoint-that-does-not-exist.com", testAPIKey)
+	h := NewHandler(cAPI)
 	r := mux.NewRouter()
 	r.Handle("/drafts/content/{uuid}", h)
 
@@ -89,11 +93,11 @@ func TestConnectionError(t *testing.T) {
 	resp := w.Result()
 	_, err := ioutil.ReadAll(resp.Body)
 
-	assert.Equal(t, http.StatusBadGateway, resp.StatusCode)
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.NoError(t, err)
 }
 
-func newContentAPIMock(t *testing.T, status int, body string) *httptest.Server {
+func newContentAPIServerMock(t *testing.T, status int, body string) *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for k, v := range testHeaders {
 			assert.Equal(t, v, r.Header[k])
