@@ -2,7 +2,8 @@ package main
 
 import (
 	"github.com/Financial-Times/draft-content-api/content"
-	health "github.com/Financial-Times/go-fthealth/v1_1"
+	"github.com/Financial-Times/draft-content-api/health"
+	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
@@ -59,10 +60,12 @@ func main() {
 	app.Action = func() {
 		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
 
-		cAPI:= content.NewContentAPI(*contentEndpoint, *contentAPIKey)
+		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey)
 		contentHandler := content.NewHandler(cAPI)
+		healthService := health.NewHealthService(cAPI)
 		go func() {
-			serveEndpoints(*appSystemCode, *appName, *port, contentHandler)
+			serveEndpoints(*appSystemCode, *appName, *port, contentHandler, healthService)
+
 		}()
 
 		waitForSignal()
@@ -74,15 +77,14 @@ func main() {
 	}
 }
 
-func serveEndpoints(appSystemCode string, appName string, port string, contentHandler *content.Handler) {
-	healthService := newHealthService(&healthConfig{appSystemCode: appSystemCode, appName: appName, port: port})
+func serveEndpoints(appSystemCode string, appName string, port string, contentHandler *content.Handler, healthService *health.HealthService) {
 
 	r := mux.NewRouter()
 
-	hc := health.HealthCheck{SystemCode: appSystemCode, Name: appName, Description: appDescription, Checks: healthService.checks}
-	r.Handle("/content/{uuid}", contentHandler).Methods("GET")
-	r.HandleFunc(healthPath, health.Handler(hc))
-	r.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.gtgCheck))
+	hc := fthealth.HealthCheck{SystemCode: appSystemCode, Name: appName, Description: appDescription, Checks: healthService.Checks}
+	r.Handle("/drafts/content/{uuid}", contentHandler).Methods("GET")
+	r.HandleFunc("/__health", fthealth.Handler(hc))
+	r.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.GTG))
 	r.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
 
 	if err := http.ListenAndServe(":"+port, r); err != nil {
