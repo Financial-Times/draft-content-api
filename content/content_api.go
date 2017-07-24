@@ -12,17 +12,22 @@ import (
 
 const synteticContentUUID = "4f2f97ea-b8ec-11e4-b8e6-00144feab7de"
 
-type ContentAPI struct {
+type ContentAPI interface {
+	Get(ctx context.Context, contentUUID string, header http.Header) (*http.Response, error)
+	GTG() error
+}
+
+type contentAPI struct {
 	endpoint   string
 	apyKey     string
 	httpClient *http.Client
 }
 
-func NewContentAPI(endpoint string, apiKey string) *ContentAPI {
-	return &ContentAPI{endpoint, apiKey, &http.Client{}}
+func NewContentAPI(endpoint string, apiKey string) ContentAPI {
+	return &contentAPI{endpoint, apiKey, &http.Client{}}
 }
 
-func (api *ContentAPI) get(ctx context.Context, contentUUID string, header http.Header) (*http.Response, error) {
+func (api *contentAPI) Get(ctx context.Context, contentUUID string, header http.Header) (*http.Response, error) {
 	apiReqURI := api.endpoint + "/" + contentUUID
 	getContentLog := log.WithField("url", apiReqURI).WithField("uuid", contentUUID)
 	tID, err := tIDUtils.GetTransactionIDFromContext(ctx)
@@ -48,7 +53,7 @@ func (api *ContentAPI) get(ctx context.Context, contentUUID string, header http.
 	return api.httpClient.Do(apiReq)
 }
 
-func (api *ContentAPI) GTG() error {
+func (api *contentAPI) GTG() error {
 	apiReqURI := api.endpoint + "/" + synteticContentUUID
 	apiReq, err := http.NewRequest("GET", apiReqURI+"?apiKey="+api.apyKey, nil)
 	if err != nil {

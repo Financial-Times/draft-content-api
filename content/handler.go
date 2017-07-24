@@ -10,10 +10,10 @@ import (
 )
 
 type Handler struct {
-	contentAPI *ContentAPI
+	contentAPI ContentAPI
 }
 
-func NewHandler(api *ContentAPI) *Handler {
+func NewHandler(api ContentAPI) *Handler {
 	return &Handler{api}
 }
 
@@ -21,9 +21,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	uuid := vestigo.Param(r, "uuid")
 	tID := tIDUtils.GetTransactionIDFromRequest(r)
 	ctx := tIDUtils.TransactionAwareContext(context.Background(), tID)
-	resp, err := h.contentAPI.get(ctx, uuid, r.Header)
+	resp, err := h.contentAPI.Get(ctx, uuid, r.Header)
 	if err != nil {
-		log.WithError(err).WithField(tIDUtils.TransactionIDKey, tID).WithField("url", h.contentAPI.endpoint+"/"+uuid).Error("Error in calling Content API")
+		log.WithError(err).WithField(tIDUtils.TransactionIDKey, tID).WithField("uuid", uuid).Error("Error in calling Content API")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

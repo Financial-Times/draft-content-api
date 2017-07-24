@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/Financial-Times/draft-content-api/content"
 	"github.com/Financial-Times/draft-content-api/health"
-	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/husobee/vestigo"
 	"github.com/jawher/mow.cli"
@@ -62,10 +61,9 @@ func main() {
 
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey)
 		contentHandler := content.NewHandler(cAPI)
-		healthService := health.NewHealthService(cAPI)
+		healthService := health.NewHealthService(*appSystemCode, *appName, appDescription, cAPI)
 		go func() {
-			serveEndpoints(*appSystemCode, *appName, *port, contentHandler, healthService)
-
+			serveEndpoints(*port, contentHandler, healthService)
 		}()
 
 		waitForSignal()
@@ -77,13 +75,12 @@ func main() {
 	}
 }
 
-func serveEndpoints(appSystemCode string, appName string, port string, contentHandler *content.Handler, healthService *health.HealthService) {
+func serveEndpoints(port string, contentHandler *content.Handler, healthService *health.HealthService) {
 
 	r := vestigo.NewRouter()
 
-	hc := fthealth.HealthCheck{SystemCode: appSystemCode, Name: appName, Description: appDescription, Checks: healthService.Checks}
 	r.Get("/drafts/content/:uuid", contentHandler.ServeHTTP)
-	r.Get("/__health", fthealth.Handler(hc))
+	r.Get("/__health", healthService.HealthCheckHandleFunc())
 	r.Get(status.GTGPath, status.NewGoodToGoHandler(healthService.GTG))
 	r.Get(status.BuildInfoPath, status.BuildInfoHandler)
 

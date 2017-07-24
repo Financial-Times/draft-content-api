@@ -4,19 +4,27 @@ import (
 	"github.com/Financial-Times/draft-content-api/content"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/service-status-go/gtg"
+	"net/http"
 )
 
 type HealthService struct {
-	contentAPI *content.ContentAPI
-	Checks     []health.Check
+	health.HealthCheck
+	contentAPI content.ContentAPI
 }
 
-func NewHealthService(api *content.ContentAPI) *HealthService {
+func NewHealthService(appSystemCode string, appName string, appDescription string, api content.ContentAPI) *HealthService {
 	service := &HealthService{contentAPI: api}
+	service.SystemCode = appSystemCode
+	service.Name = appName
+	service.Description = appDescription
 	service.Checks = []health.Check{
 		service.contentAPICheck(),
 	}
 	return service
+}
+
+func (service *HealthService) HealthCheckHandleFunc() func(w http.ResponseWriter, r *http.Request) {
+	return health.Handler(service)
 }
 
 func (service *HealthService) contentAPICheck() health.Check {
