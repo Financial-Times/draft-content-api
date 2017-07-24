@@ -1,7 +1,7 @@
 package content
 
 import (
-	"github.com/gorilla/mux"
+	"github.com/husobee/vestigo"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
@@ -22,8 +22,8 @@ func TestHappyContentAPI(t *testing.T) {
 
 	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
 	h := NewHandler(cAPI)
-	r := mux.NewRouter()
-	r.Handle("/drafts/content/{uuid}", h)
+	r := vestigo.NewRouter()
+	r.Get("/drafts/content/:uuid", h.ServeHTTP)
 
 	req := httptest.NewRequest("GET", "http://api.ft.com/drafts/content/83a201c6-60cd-11e7-91a7-502f7ee26895", nil)
 	req.Header = testHeaders
@@ -44,8 +44,8 @@ func TestContentAPI404(t *testing.T) {
 
 	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
 	h := NewHandler(cAPI)
-	r := mux.NewRouter()
-	r.Handle("/drafts/content/{uuid}", h)
+	r := vestigo.NewRouter()
+	r.Get("/drafts/content/:uuid", h.ServeHTTP)
 
 	req := httptest.NewRequest("GET", "http://api.ft.com/drafts/content/83a201c6-60cd-11e7-91a7-502f7ee26895", nil)
 	req.Header = testHeaders
@@ -63,8 +63,8 @@ func TestContentAPI404(t *testing.T) {
 func TestInvalidURL(t *testing.T) {
 	cAPI := NewContentAPI(":#", testAPIKey)
 	h := NewHandler(cAPI)
-	r := mux.NewRouter()
-	r.Handle("/drafts/content/{uuid}", h)
+	r := vestigo.NewRouter()
+	r.Get("/drafts/content/:uuid", h.ServeHTTP)
 
 	req := httptest.NewRequest("GET", "http://api.ft.com/drafts/content/83a201c6-60cd-11e7-91a7-502f7ee26895", nil)
 	req.Header = testHeaders
@@ -82,8 +82,8 @@ func TestInvalidURL(t *testing.T) {
 func TestConnectionError(t *testing.T) {
 	cAPI := NewContentAPI("http://an-endpoint-that-does-not-exist.com", testAPIKey)
 	h := NewHandler(cAPI)
-	r := mux.NewRouter()
-	r.Handle("/drafts/content/{uuid}", h)
+	r := vestigo.NewRouter()
+	r.Get("/drafts/content/:uuid", h.ServeHTTP)
 
 	req := httptest.NewRequest("GET", "http://api.ft.com/drafts/content/83a201c6-60cd-11e7-91a7-502f7ee26895", nil)
 	req.Header = testHeaders

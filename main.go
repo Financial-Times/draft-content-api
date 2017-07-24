@@ -5,13 +5,13 @@ import (
 	"github.com/Financial-Times/draft-content-api/health"
 	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
+	"github.com/husobee/vestigo"
 	"github.com/jawher/mow.cli"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"github.com/husobee/vestigo"
 )
 
 const appDescription = "UPP Golang Microservice Template short description - please amend"
