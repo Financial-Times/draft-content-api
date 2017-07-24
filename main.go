@@ -8,6 +8,7 @@ import (
 	"github.com/jawher/mow.cli"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
