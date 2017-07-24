@@ -39,7 +39,9 @@ func (api *ContentAPI) get(ctx context.Context, contentUUID string, header http.
 	}
 
 	for k, v := range header {
-		apiReq.Header[k] = v
+		if k != "Accept-Encoding" { // I decided to avoid to forward this header to avoid compression of the message body
+			apiReq.Header[k] = v
+		}
 	}
 
 	getContentLog.Info("Calling Content API")

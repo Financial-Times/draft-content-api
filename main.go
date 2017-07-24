@@ -5,13 +5,13 @@ import (
 	"github.com/Financial-Times/draft-content-api/health"
 	fthealth "github.com/Financial-Times/go-fthealth/v1_1"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
-	"github.com/gorilla/mux"
 	"github.com/jawher/mow.cli"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"github.com/husobee/vestigo"
 )
 
 const appDescription = "UPP Golang Microservice Template short description - please amend"
@@ -79,13 +79,13 @@ func main() {
 
 func serveEndpoints(appSystemCode string, appName string, port string, contentHandler *content.Handler, healthService *health.HealthService) {
 
-	r := mux.NewRouter()
+	r := vestigo.NewRouter()
 
 	hc := fthealth.HealthCheck{SystemCode: appSystemCode, Name: appName, Description: appDescription, Checks: healthService.Checks}
-	r.Handle("/drafts/content/{uuid}", contentHandler).Methods("GET")
-	r.HandleFunc("/__health", fthealth.Handler(hc))
-	r.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.GTG))
-	r.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
+	r.Get("/drafts/content/:uuid", contentHandler.ServeHTTP)
+	r.Get("/__health", fthealth.Handler(hc))
+	r.Get(status.GTGPath, status.NewGoodToGoHandler(healthService.GTG))
+	r.Get(status.BuildInfoPath, status.BuildInfoHandler)
 
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalf("Unable to start: %v", err)

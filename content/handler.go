@@ -3,7 +3,7 @@ package content
 import (
 	"context"
 	tIDUtils "github.com/Financial-Times/transactionid-utils-go"
-	"github.com/gorilla/mux"
+	"github.com/husobee/vestigo"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -18,8 +18,7 @@ func NewHandler(api *ContentAPI) *Handler {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	uuid := vars["uuid"]
+	uuid := vestigo.Param(r, "uuid")
 	tID := tIDUtils.GetTransactionIDFromRequest(r)
 	ctx := tIDUtils.TransactionAwareContext(context.Background(), tID)
 	resp, err := h.contentAPI.get(ctx, uuid, r.Header)
@@ -28,12 +27,16 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	//defer resp.Body.Close()
+	defer resp.Body.Close()
+
+	for k, values := range resp.Header {
+		for _, v := range values {
+			if k != "Content-Encoding" {
+				w.Header().Set(k, v)
+			}
+		}
+	}
 
 	w.WriteHeader(resp.StatusCode)
-	for k, v := range resp.Header {
-		w.Header()[k] = v
-	}
 	io.Copy(w, resp.Body)
-	return
 }
