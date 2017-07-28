@@ -10,6 +10,8 @@ import (
 	"net/http"
 )
 
+const apiKeyHeader = "X-Api-Key"
+
 const syntheticContentUUID = "4f2f97ea-b8ec-11e4-b8e6-00144feab7de"
 
 type ContentAPI interface {
@@ -19,7 +21,7 @@ type ContentAPI interface {
 
 type contentAPI struct {
 	endpoint   string
-	apyKey     string
+	apiKey     string
 	httpClient *http.Client
 }
 
@@ -36,7 +38,7 @@ func (api *contentAPI) Get(ctx context.Context, contentUUID string, header http.
 	}
 	getContentLog = getContentLog.WithField(tidutils.TransactionIDKey, tID)
 
-	apiReq, err := http.NewRequest("GET", apiReqURI+"?apiKey="+api.apyKey, nil)
+	apiReq, err := http.NewRequest("GET", apiReqURI, nil)
 
 	if err != nil {
 		getContentLog.WithError(err).Error("Error in creating the http request")
@@ -49,16 +51,20 @@ func (api *contentAPI) Get(ctx context.Context, contentUUID string, header http.
 		}
 	}
 
+	apiReq.Header.Set(apiKeyHeader,api.apiKey)
+
 	getContentLog.Info("Calling Content API")
 	return api.httpClient.Do(apiReq)
 }
 
 func (api *contentAPI) GTG() error {
 	apiReqURI := api.endpoint + "/" + syntheticContentUUID
-	apiReq, err := http.NewRequest("GET", apiReqURI+"?apiKey="+api.apyKey, nil)
+	apiReq, err := http.NewRequest("GET", apiReqURI, nil)
 	if err != nil {
 		return fmt.Errorf("gtg request error: %v", err.Error())
 	}
+
+	apiReq.Header.Set(apiKeyHeader,api.apiKey)
 
 	apiResp, err := api.httpClient.Do(apiReq)
 	if err != nil {

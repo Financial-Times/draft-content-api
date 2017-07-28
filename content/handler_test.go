@@ -103,7 +103,7 @@ func newContentAPIServerMock(t *testing.T, status int, body string) *httptest.Se
 			assert.Equal(t, v, r.Header[k])
 		}
 
-		if values := r.URL.Query(); len(values["apiKey"]) != 1 || values["apiKey"][0] != testAPIKey {
+		if apiKey := r.Header.Get(apiKeyHeader); apiKey != testAPIKey {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
