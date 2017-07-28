@@ -1,6 +1,7 @@
 package content
 
 import (
+	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -10,11 +11,7 @@ import (
 )
 
 const testAPIKey = "testAPIKey"
-
-var testHeaders = http.Header{
-	"Pippo":   []string{"pluto"},
-	"Cartman": []string{"Kyle"},
-}
+const testTID = "test_tid"
 
 func TestHappyContentAPI(t *testing.T) {
 	cAPIServerMock := newContentAPIServerMock(t, http.StatusOK, aContentBody)
@@ -26,7 +23,7 @@ func TestHappyContentAPI(t *testing.T) {
 	r.Get("/drafts/content/:uuid", h.ServeHTTP)
 
 	req := httptest.NewRequest("GET", "http://api.ft.com/drafts/content/83a201c6-60cd-11e7-91a7-502f7ee26895", nil)
-	req.Header = testHeaders
+	req.Header.Set(tidutils.TransactionIDHeader, testTID)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -48,7 +45,7 @@ func TestContentAPI404(t *testing.T) {
 	r.Get("/drafts/content/:uuid", h.ServeHTTP)
 
 	req := httptest.NewRequest("GET", "http://api.ft.com/drafts/content/83a201c6-60cd-11e7-91a7-502f7ee26895", nil)
-	req.Header = testHeaders
+	req.Header.Set(tidutils.TransactionIDHeader, testTID)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -67,7 +64,7 @@ func TestInvalidURL(t *testing.T) {
 	r.Get("/drafts/content/:uuid", h.ServeHTTP)
 
 	req := httptest.NewRequest("GET", "http://api.ft.com/drafts/content/83a201c6-60cd-11e7-91a7-502f7ee26895", nil)
-	req.Header = testHeaders
+	req.Header.Set(tidutils.TransactionIDHeader, testTID)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -86,7 +83,7 @@ func TestConnectionError(t *testing.T) {
 	r.Get("/drafts/content/:uuid", h.ServeHTTP)
 
 	req := httptest.NewRequest("GET", "http://api.ft.com/drafts/content/83a201c6-60cd-11e7-91a7-502f7ee26895", nil)
-	req.Header = testHeaders
+	req.Header.Set(tidutils.TransactionIDHeader, testTID)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -99,14 +96,11 @@ func TestConnectionError(t *testing.T) {
 
 func newContentAPIServerMock(t *testing.T, status int, body string) *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for k, v := range testHeaders {
-			assert.Equal(t, v, r.Header[k])
-		}
-
 		if apiKey := r.Header.Get(apiKeyHeader); apiKey != testAPIKey {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
+		assert.Equal(t, testTID, r.Header.Get(tidutils.TransactionIDHeader))
 		w.WriteHeader(status)
 		w.Write([]byte(body))
 	}))

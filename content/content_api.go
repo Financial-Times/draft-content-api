@@ -15,7 +15,7 @@ const apiKeyHeader = "X-Api-Key"
 const syntheticContentUUID = "4f2f97ea-b8ec-11e4-b8e6-00144feab7de"
 
 type ContentAPI interface {
-	Get(ctx context.Context, contentUUID string, header http.Header) (*http.Response, error)
+	Get(ctx context.Context, contentUUID string) (*http.Response, error)
 	GTG() error
 }
 
@@ -29,7 +29,7 @@ func NewContentAPI(endpoint string, apiKey string) ContentAPI {
 	return &contentAPI{endpoint, apiKey, &http.Client{}}
 }
 
-func (api *contentAPI) Get(ctx context.Context, contentUUID string, header http.Header) (*http.Response, error) {
+func (api *contentAPI) Get(ctx context.Context, contentUUID string) (*http.Response, error) {
 	apiReqURI := api.endpoint + "/" + contentUUID
 	getContentLog := log.WithField("url", apiReqURI).WithField("uuid", contentUUID)
 	tID, err := tidutils.GetTransactionIDFromContext(ctx)
@@ -45,13 +45,10 @@ func (api *contentAPI) Get(ctx context.Context, contentUUID string, header http.
 		return nil, err
 	}
 
-	for k, v := range header {
-		if k != "Accept-Encoding" { // I decided to avoid to forward this header to avoid compression of the message body
-			apiReq.Header[k] = v
-		}
+	apiReq.Header.Set(apiKeyHeader, api.apiKey)
+	if tID != "" {
+		apiReq.Header.Set(tidutils.TransactionIDHeader, tID)
 	}
-
-	apiReq.Header.Set(apiKeyHeader,api.apiKey)
 
 	getContentLog.Info("Calling Content API")
 	return api.httpClient.Do(apiReq)
@@ -64,7 +61,7 @@ func (api *contentAPI) GTG() error {
 		return fmt.Errorf("gtg request error: %v", err.Error())
 	}
 
-	apiReq.Header.Set(apiKeyHeader,api.apiKey)
+	apiReq.Header.Set(apiKeyHeader, api.apiKey)
 
 	apiResp, err := api.httpClient.Do(apiReq)
 	if err != nil {

@@ -92,8 +92,8 @@ type ContentAPIMock struct {
 	mock.Mock
 }
 
-func (m ContentAPIMock) Get(ctx context.Context, contentUUID string, header http.Header) (*http.Response, error) {
-	args := m.Called(ctx, contentUUID, header)
+func (m ContentAPIMock) Get(ctx context.Context, contentUUID string) (*http.Response, error) {
+	args := m.Called(ctx, contentUUID)
 	return args.Get(0).(*http.Response), args.Error(1)
 }
 
