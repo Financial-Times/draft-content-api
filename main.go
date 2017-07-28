@@ -1,6 +1,7 @@
 package main
 
 import (
+	api "github.com/Financial-Times/api-endpoint"
 	"github.com/Financial-Times/draft-content-api/content"
 	"github.com/Financial-Times/draft-content-api/health"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
@@ -54,6 +55,13 @@ func main() {
 		EnvVar: "CAPI_APIKEY",
 	})
 
+	apiYml := app.String(cli.StringOpt{
+		Name:   "api-yml",
+		Value:  "./api.yml",
+		Desc:   "Location of the API Swagger YML file.",
+		EnvVar: "API_YML",
+	})
+
 	log.SetLevel(log.InfoLevel)
 	log.Infof("[Startup] %v is starting", *appSystemCode)
 
@@ -64,7 +72,7 @@ func main() {
 		contentHandler := content.NewHandler(cAPI)
 		healthService := health.NewHealthService(*appSystemCode, *appName, appDescription, cAPI)
 		go func() {
-			serveEndpoints(*port, contentHandler, healthService)
+			serveEndpoints(*port, apiYml, contentHandler, healthService)
 		}()
 
 		waitForSignal()
@@ -76,7 +84,7 @@ func main() {
 	}
 }
 
-func serveEndpoints(port string, contentHandler *content.Handler, healthService *health.HealthService) {
+func serveEndpoints(port string, apiYml *string, contentHandler *content.Handler, healthService *health.HealthService) {
 
 	r := vestigo.NewRouter()
 
@@ -84,6 +92,15 @@ func serveEndpoints(port string, contentHandler *content.Handler, healthService 
 	r.Get("/__health", healthService.HealthCheckHandleFunc())
 	r.Get(status.GTGPath, status.NewGoodToGoHandler(healthService.GTG))
 	r.Get(status.BuildInfoPath, status.BuildInfoHandler)
+
+	if apiYml != nil {
+		apiEndpoint, err := api.NewAPIEndpointForFile(*apiYml)
+		if err != nil {
+			log.WithError(err).WithField("file", apiYml).Warn("Failed to serve the API Endpoint for this service. Please validate the Swagger YML and the file location.")
+		} else {
+			r.Get(api.DefaultPath, apiEndpoint.ServeHTTP)
+		}
+	}
 
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalf("Unable to start: %v", err)

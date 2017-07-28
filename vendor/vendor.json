@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "j6lfOuqQgjMm3KP3lq1yUxRDj9k=",
+			"path": "github.com/Financial-Times/api-endpoint",
+			"revision": "802a63542ff0fe6cf81c06a31fdd330a8202ac61",
+			"revisionTime": "2017-07-13T11:12:58Z"
+		},
+		{
 			"checksumSHA1": "fNgRM8ZlaDzdvSpuhSdGxEOrWi4=",
 			"path": "github.com/Financial-Times/go-fthealth/v1_1",
 			"revision": "e7ccca038327a0091303a52445ec1f0fb66cb97b",
@@ -103,10 +109,16 @@
 			"revisionTime": "2017-07-18T17:12:47Z"
 		},
 		{
-			"checksumSHA1": "vlicYp+fe4ECQ+5QqpAk36VRA3s=",
+			"checksumSHA1": "lzKN/3F0mwa8tLTOD/9zG5H1rN0=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "cd2c276457edda6df7fb04895d3fd6a6add42926",
 			"revisionTime": "2017-07-17T10:05:24Z"
+		},
+		{
+			"checksumSHA1": "12GqsW8PiRPnezDDy0v4brZrndM=",
+			"path": "gopkg.in/yaml.v2",
+			"revision": "a5b47d31c556af34a302ce5d659e6fea44d90de0",
+			"revisionTime": "2016-09-28T15:37:09Z"
 		}
 	],
 	"rootPath": "github.com/Financial-Times/draft-content-api"
