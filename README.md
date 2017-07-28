@@ -4,8 +4,6 @@
 
 ## Introduction
 
-_What is this service and what is it for? What other services does it depend on_
-
 Draft content API is a microservice that provides access to draft content stored in PAC.
 At the moment the service is a simple proxy to UPP Content API.
 
