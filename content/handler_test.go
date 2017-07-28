@@ -77,7 +77,10 @@ func TestInvalidURL(t *testing.T) {
 }
 
 func TestConnectionError(t *testing.T) {
-	cAPI := NewContentAPI("http://an-endpoint-that-does-not-exist.com", testAPIKey)
+	cAPIServerMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	cAPIServerMock.Close()
+
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
 	h := NewHandler(cAPI)
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ServeHTTP)

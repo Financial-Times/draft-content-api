@@ -41,7 +41,10 @@ func TestContentAPIGTGInvalidURL(t *testing.T) {
 }
 
 func TestContentAPIGTGConnectionError(t *testing.T) {
-	cAPI := NewContentAPI("http://a-url-that-does-not-exist.com", testAPIKey)
+	cAPIServerMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	cAPIServerMock.Close()
+
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
 	err := cAPI.GTG()
 	assert.Error(t, err)
 }
