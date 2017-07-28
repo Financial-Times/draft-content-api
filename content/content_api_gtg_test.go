@@ -48,7 +48,7 @@ func TestContentAPIGTGConnectionError(t *testing.T) {
 
 func newContentAPIGTGServerMock(t *testing.T, status int, body string) *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/content/"+synteticContentUUID, r.URL.Path)
+		assert.Equal(t, "/content/"+syntheticContentUUID, r.URL.Path)
 		if values := r.URL.Query(); len(values["apiKey"]) != 1 || values["apiKey"][0] != testAPIKey {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Write([]byte("unauthorized"))
