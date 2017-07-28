@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-const synteticContentUUID = "4f2f97ea-b8ec-11e4-b8e6-00144feab7de"
+const syntheticContentUUID = "4f2f97ea-b8ec-11e4-b8e6-00144feab7de"
 
 type ContentAPI interface {
 	Get(ctx context.Context, contentUUID string, header http.Header) (*http.Response, error)
@@ -54,7 +54,7 @@ func (api *contentAPI) Get(ctx context.Context, contentUUID string, header http.
 }
 
 func (api *contentAPI) GTG() error {
-	apiReqURI := api.endpoint + "/" + synteticContentUUID
+	apiReqURI := api.endpoint + "/" + syntheticContentUUID
 	apiReq, err := http.NewRequest("GET", apiReqURI+"?apiKey="+api.apyKey, nil)
 	if err != nil {
 		return fmt.Errorf("gtg request error: %v", err.Error())
