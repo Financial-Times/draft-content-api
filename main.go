@@ -55,7 +55,7 @@ func main() {
 	})
 
 	log.SetLevel(log.InfoLevel)
-	log.Infof("[Startup] draft-content-api is starting ")
+	log.Infof("[Startup] %v is starting", *appSystemCode)
 
 	app.Action = func() {
 		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
