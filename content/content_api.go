@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	tIDUtils "github.com/Financial-Times/transactionid-utils-go"
+	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
@@ -30,11 +30,11 @@ func NewContentAPI(endpoint string, apiKey string) ContentAPI {
 func (api *contentAPI) Get(ctx context.Context, contentUUID string, header http.Header) (*http.Response, error) {
 	apiReqURI := api.endpoint + "/" + contentUUID
 	getContentLog := log.WithField("url", apiReqURI).WithField("uuid", contentUUID)
-	tID, err := tIDUtils.GetTransactionIDFromContext(ctx)
+	tID, err := tidutils.GetTransactionIDFromContext(ctx)
 	if err != nil {
 		getContentLog.WithError(err).Warn("Transaction ID not found for request to content API")
 	}
-	getContentLog = getContentLog.WithField(tIDUtils.TransactionIDKey, tID)
+	getContentLog = getContentLog.WithField(tidutils.TransactionIDKey, tID)
 
 	apiReq, err := http.NewRequest("GET", apiReqURI+"?apiKey="+api.apyKey, nil)
 

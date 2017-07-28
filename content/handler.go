@@ -2,7 +2,7 @@ package content
 
 import (
 	"context"
-	tIDUtils "github.com/Financial-Times/transactionid-utils-go"
+	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -19,11 +19,11 @@ func NewHandler(api ContentAPI) *Handler {
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	uuid := vestigo.Param(r, "uuid")
-	tID := tIDUtils.GetTransactionIDFromRequest(r)
-	ctx := tIDUtils.TransactionAwareContext(context.Background(), tID)
+	tID := tidutils.GetTransactionIDFromRequest(r)
+	ctx := tidutils.TransactionAwareContext(context.Background(), tID)
 	resp, err := h.contentAPI.Get(ctx, uuid, r.Header)
 	if err != nil {
-		log.WithError(err).WithField(tIDUtils.TransactionIDKey, tID).WithField("uuid", uuid).Error("Error in calling Content API")
+		log.WithError(err).WithField(tidutils.TransactionIDKey, tID).WithField("uuid", uuid).Error("Error in calling Content API")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
