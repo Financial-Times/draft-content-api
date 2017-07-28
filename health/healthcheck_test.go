@@ -16,6 +16,8 @@ import (
 func TestHappyHealthCheck(t *testing.T) {
 	cAPI := new(ContentAPIMock)
 	cAPI.On("GTG").Return(nil)
+	cAPI.On("Endpoint").Return("http://cool.api.ft.com/content")
+
 	h := NewHealthService("", "", "", cAPI)
 
 	req := httptest.NewRequest("GET", "/__health", nil)
@@ -33,11 +35,15 @@ func TestHappyHealthCheck(t *testing.T) {
 	check := hcBody["checks"].([]interface{})[0].(map[string]interface{})
 	assert.True(t, check["ok"].(bool))
 	assert.Equal(t, "Content API is healthy", check["checkOutput"])
+	assert.Equal(t, "Content API is not available at http://cool.api.ft.com/content", check["technicalSummary"])
+
+	cAPI.AssertExpectations(t)
 }
 
 func TestUnhappyHealthCheck(t *testing.T) {
 	cAPI := new(ContentAPIMock)
 	cAPI.On("GTG").Return(errors.New("computer says no"))
+	cAPI.On("Endpoint").Return("http://cool.api.ft.com/content")
 	h := NewHealthService("", "", "", cAPI)
 
 	req := httptest.NewRequest("GET", "/__health", nil)
@@ -55,11 +61,15 @@ func TestUnhappyHealthCheck(t *testing.T) {
 	check := hcBody["checks"].([]interface{})[0].(map[string]interface{})
 	assert.False(t, check["ok"].(bool))
 	assert.Equal(t, "computer says no", check["checkOutput"])
+	assert.Equal(t, "Content API is not available at http://cool.api.ft.com/content", check["technicalSummary"])
+
+	cAPI.AssertExpectations(t)
 }
 
 func TestHappyGTG(t *testing.T) {
 	cAPI := new(ContentAPIMock)
 	cAPI.On("GTG").Return(nil)
+	cAPI.On("Endpoint").Return("http://cool.api.ft.com/content")
 	h := NewHealthService("", "", "", cAPI)
 
 	req := httptest.NewRequest("GET", "/__gtg", nil)
@@ -69,11 +79,14 @@ func TestHappyGTG(t *testing.T) {
 	resp := w.Result()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	cAPI.AssertExpectations(t)
 }
 
 func TestUnhappyGTG(t *testing.T) {
 	cAPI := new(ContentAPIMock)
 	cAPI.On("GTG").Return(errors.New("computer says no"))
+	cAPI.On("Endpoint").Return("http://cool.api.ft.com/content")
 	h := NewHealthService("", "", "", cAPI)
 
 	req := httptest.NewRequest("GET", "/__gtg", nil)
@@ -86,6 +99,8 @@ func TestUnhappyGTG(t *testing.T) {
 	body, err := ioutil.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Equal(t, "computer says no", string(body))
+
+	cAPI.AssertExpectations(t)
 }
 
 type ContentAPIMock struct {
@@ -100,4 +115,9 @@ func (m ContentAPIMock) Get(ctx context.Context, contentUUID string) (*http.Resp
 func (m ContentAPIMock) GTG() error {
 	args := m.Called()
 	return args.Error(0)
+}
+
+func (m ContentAPIMock) Endpoint() string {
+	args := m.Called()
+	return args.String(0)
 }

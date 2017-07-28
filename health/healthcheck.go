@@ -1,6 +1,7 @@
 package health
 
 import (
+	"fmt"
 	"github.com/Financial-Times/draft-content-api/content"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/service-status-go/gtg"
@@ -34,7 +35,7 @@ func (service *HealthService) contentAPICheck() health.Check {
 		Name:             "Check Content API Health",
 		PanicGuide:       "https://dewey.ft.com/draft-content-api.html",
 		Severity:         1,
-		TechnicalSummary: "Content API is not available",
+		TechnicalSummary: fmt.Sprintf("Content API is not available at %v", service.contentAPI.Endpoint()),
 		Checker:          service.contentAPIChecker,
 	}
 }

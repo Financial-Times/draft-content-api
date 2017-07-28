@@ -17,6 +17,7 @@ const syntheticContentUUID = "4f2f97ea-b8ec-11e4-b8e6-00144feab7de"
 type ContentAPI interface {
 	Get(ctx context.Context, contentUUID string) (*http.Response, error)
 	GTG() error
+	Endpoint() string
 }
 
 type contentAPI struct {
@@ -77,4 +78,8 @@ func (api *contentAPI) GTG() error {
 		return fmt.Errorf("gtg returned a non-200 HTTP status: %v - %v", apiResp.StatusCode, string(errMsgBody))
 	}
 	return nil
+}
+
+func (api *contentAPI) Endpoint() string {
+	return api.endpoint
 }
