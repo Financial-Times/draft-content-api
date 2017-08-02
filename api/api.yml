@@ -1,18 +1,20 @@
 swagger: "2.0"
+
 info:
-  title: "Draft-Content-API"
-  description: "API for draft content"
-  version: "0.0.1"
+  title: Draft Content API
+  description: API for draft content
+  version: 0.0.1
   license:
     name: MIT
   contact:
     name: Universal Publishing
     email: universal.publishing@ft.com
-host: "api.ft.com"
+
+host: api.ft.com
+basePath: "/"
 schemes:
   - http
   - https
-basePath: "/"
 
 paths:
   /drafts/content/{uuid}:
@@ -20,21 +22,26 @@ paths:
       summary: Returns the draft content with given uuid.
       description: Returns the draft content with the given uuid.
       tags:
-      - Draft Content
+        - Draft Content
+      produces:
+        - application/json
       parameters:
-      - name: "uuid"
-        in: "path"
-        description: "uuid of the content"
-        required: true
-        type: "string"
+        - name: uuid
+          in: path
+          description: The UUID of the content
+          required: true
+          type: string
+          x-example: 6c0e73e6-4467-11e7-91a0-9e5c470d1f21
       responses:
         200:
-          description: "Successful operation"
+          description: Returns the UPP format json document for the content UUID
+          examples:
+            application/json:
+              id: http://www.ft.com/thing/6c0e73e6-4467-11e7-91a0-9e5c470d1f21
         400:
-          description: "Invalid uuid supplied"
+          description: Invalid uuid supplied
         404:
-          description: "Content not found"
-
+          description: Content not found
 
   /__health:
     get:
@@ -92,9 +99,13 @@ paths:
       description: Lightly healthchecks the application, and returns a 200 if it's Good-To-Go.
       tags:
         - Health
+      produces:
+          - text/plain; charset=US-ASCII
       responses:
         200:
           description: The application is healthy enough to perform all its functions correctly - i.e. good to go.
+          examples:
+               text/plain; charset=US-ASCII: OK
         503:
           description: >
             One or more of the applications healthchecks have failed,

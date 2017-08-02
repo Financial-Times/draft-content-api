@@ -2,11 +2,12 @@ package content
 
 import (
 	"context"
+	"io"
+	"net/http"
+
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"net/http"
 )
 
 type Handler struct {
@@ -29,6 +30,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
+	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
+
 	io.Copy(w, resp.Body)
 }
