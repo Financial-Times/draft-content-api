@@ -68,12 +68,6 @@ Or using [httpie](https://github.com/jkbrzt/httpie):
 At the moment this endpoint is a proxy to the content available in UPP, 
 so it returns a payload consistent to the Content API in UPP.
 
-
-## Utility endpoints
-
-The standard endpoint for Go profiling is available under the path `/debug/pprof`. 
-Details regarding Go profiling are available [here](https://golang.org/pkg/net/http/pprof/)
-
 ## Healthchecks
 Admin endpoints are:
 
