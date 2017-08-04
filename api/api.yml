@@ -19,7 +19,7 @@ schemes:
 paths:
   /drafts/content/{uuid}:
     get:
-      summary: Returns the draft content with given uuid.
+      summary: Get Content
       description: Returns the draft content with the given uuid.
       tags:
         - Draft Content
