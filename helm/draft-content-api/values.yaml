@@ -11,5 +11,7 @@ image:
 #resources:
 #  limits:
 #    memory: 256Mi
+ingress:
+  host: "pre-prod-eu-pac.ft.com"
 
 
