@@ -11,8 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 )
 
 const appDescription = "UPP Golang Microservice Template short description - please amend"
@@ -64,11 +62,7 @@ func main() {
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey)
 		contentHandler := content.NewHandler(cAPI)
 		healthService := health.NewHealthService(*appSystemCode, *appName, appDescription, cAPI)
-		go func() {
-			serveEndpoints(*port, contentHandler, healthService)
-		}()
-
-		waitForSignal()
+		serveEndpoints(*port, contentHandler, healthService)
 	}
 	err := app.Run(os.Args)
 	if err != nil {
@@ -96,10 +90,4 @@ func serveEndpoints(port string, contentHandler *content.Handler, healthService 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Unable to start: %v", err)
 	}
-}
-
-func waitForSignal() {
-	ch := make(chan os.Signal)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-	<-ch
 }
