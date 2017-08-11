@@ -3,14 +3,14 @@ package main
 import (
 	"github.com/Financial-Times/draft-content-api/content"
 	"github.com/Financial-Times/draft-content-api/health"
+	"github.com/Financial-Times/http-handlers-go/httphandlers"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/husobee/vestigo"
 	"github.com/jawher/mow.cli"
+	"github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 )
 
 const appDescription = "UPP Golang Microservice Template short description - please amend"
@@ -62,11 +62,7 @@ func main() {
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey)
 		contentHandler := content.NewHandler(cAPI)
 		healthService := health.NewHealthService(*appSystemCode, *appName, appDescription, cAPI)
-		go func() {
-			serveEndpoints(*port, contentHandler, healthService)
-		}()
-
-		waitForSignal()
+		serveEndpoints(*port, contentHandler, healthService)
 	}
 	err := app.Run(os.Args)
 	if err != nil {
@@ -80,17 +76,18 @@ func serveEndpoints(port string, contentHandler *content.Handler, healthService 
 	r := vestigo.NewRouter()
 
 	r.Get("/drafts/content/:uuid", contentHandler.ServeHTTP)
-	r.Get("/__health", healthService.HealthCheckHandleFunc())
-	r.Get(status.GTGPath, status.NewGoodToGoHandler(healthService.GTG))
-	r.Get(status.BuildInfoPath, status.BuildInfoHandler)
 
-	if err := http.ListenAndServe(":"+port, r); err != nil {
+	var monitoringRouter http.Handler = r
+	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
+	monitoringRouter = httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
+
+	http.HandleFunc("/__health", healthService.HealthCheckHandleFunc())
+	http.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.GTG))
+	http.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
+
+	http.Handle("/", monitoringRouter)
+
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Unable to start: %v", err)
 	}
-}
-
-func waitForSignal() {
-	ch := make(chan os.Signal)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-	<-ch
 }

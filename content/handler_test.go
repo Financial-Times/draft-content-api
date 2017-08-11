@@ -57,6 +57,28 @@ func TestContentAPI404(t *testing.T) {
 	assert.Equal(t, "not found", string(body))
 }
 
+func TestContentAPI504(t *testing.T) {
+	cAPIServerMock := newContentAPIServerMock(t, http.StatusGatewayTimeout, "gateway time out")
+	defer cAPIServerMock.Close()
+
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
+	h := NewHandler(cAPI)
+	r := vestigo.NewRouter()
+	r.Get("/drafts/content/:uuid", h.ServeHTTP)
+
+	req := httptest.NewRequest("GET", "http://api.ft.com/drafts/content/83a201c6-60cd-11e7-91a7-502f7ee26895", nil)
+	req.Header.Set(tidutils.TransactionIDHeader, testTID)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+	resp := w.Result()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
+	assert.NoError(t, err)
+	assert.Equal(t, "{\"message\": \"Service unavailable\"}", string(body))
+}
+
 func TestInvalidURL(t *testing.T) {
 	cAPI := NewContentAPI(":#", testAPIKey)
 	h := NewHandler(cAPI)
