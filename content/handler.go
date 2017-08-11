@@ -31,7 +31,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 
 	w.Header().Set("Content-Type", "application/json")
-	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotFound {
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusBadRequest {
 		w.WriteHeader(resp.StatusCode)
 		io.Copy(w, resp.Body)
 	} else {
