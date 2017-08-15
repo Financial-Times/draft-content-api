@@ -23,6 +23,7 @@ RUN apk --no-cache --virtual .build-dependencies add git \
   && $GOPATH/bin/govendor sync \
   && go build -ldflags="${LDFLAGS}" \
   && mv ${PROJECT} /${PROJECT} \
+  && mv ./api/api.yml / \
   && apk del .build-dependencies \
   && rm -rf $GOPATH /var/cache/apk/*
 

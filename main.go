@@ -1,6 +1,7 @@
 package main
 
 import (
+	api "github.com/Financial-Times/api-endpoint"
 	"github.com/Financial-Times/draft-content-api/content"
 	"github.com/Financial-Times/draft-content-api/health"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
@@ -53,6 +54,13 @@ func main() {
 		EnvVar: "CAPI_APIKEY",
 	})
 
+	apiYml := app.String(cli.StringOpt{
+		Name:   "api-yml",
+		Value:  "./api.yml",
+		Desc:   "Location of the API Swagger YML file.",
+		EnvVar: "API_YML",
+	})
+
 	log.SetLevel(log.InfoLevel)
 	log.Infof("[Startup] %v is starting", *appSystemCode)
 
@@ -62,7 +70,7 @@ func main() {
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey)
 		contentHandler := content.NewHandler(cAPI)
 		healthService := health.NewHealthService(*appSystemCode, *appName, appDescription, cAPI)
-		serveEndpoints(*port, contentHandler, healthService)
+		serveEndpoints(*port, apiYml, contentHandler, healthService)
 	}
 	err := app.Run(os.Args)
 	if err != nil {
@@ -71,11 +79,20 @@ func main() {
 	}
 }
 
-func serveEndpoints(port string, contentHandler *content.Handler, healthService *health.HealthService) {
+func serveEndpoints(port string, apiYml *string, contentHandler *content.Handler, healthService *health.HealthService) {
 
 	r := vestigo.NewRouter()
 
 	r.Get("/drafts/content/:uuid", contentHandler.ServeHTTP)
+
+	if apiYml != nil {
+		apiEndpoint, err := api.NewAPIEndpointForFile(*apiYml)
+		if err != nil {
+			log.WithError(err).WithField("file", apiYml).Warn("Failed to serve the API Endpoint for this service. Please validate the Swagger YML and the file location.")
+		} else {
+			r.Get(api.DefaultPath, apiEndpoint.ServeHTTP)
+		}
+	}
 
 	var monitoringRouter http.Handler = r
 	monitoringRouter = httphandlers.TransactionAwareRequestLoggingHandler(log.StandardLogger(), monitoringRouter)
