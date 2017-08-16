@@ -1,6 +1,6 @@
 FROM golang:1.8-alpine
 
-ENV PROJECT=content-editorial-read
+ENV PROJECT=draft-content-api
 COPY . /${PROJECT}-sources/
 
 RUN apk --no-cache --virtual .build-dependencies add git \
@@ -21,12 +21,12 @@ RUN apk --no-cache --virtual .build-dependencies add git \
   && echo "Fetching dependencies..." \
   && go get -u github.com/kardianos/govendor \
   && $GOPATH/bin/govendor sync \
-  && go get -v \
   && go build -ldflags="${LDFLAGS}" \
   && mv ${PROJECT} /${PROJECT} \
+  && mv ./api/api.yml / \
   && apk del .build-dependencies \
   && rm -rf $GOPATH /var/cache/apk/*
 
 WORKDIR /
 
-CMD [ "/content-editorial-read" ]
+CMD [ "/draft-content-api" ]
