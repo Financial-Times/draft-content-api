@@ -11,6 +11,17 @@ metadata:
     ingress.kubernetes.io/auth-realm: "Authentication Required"
 spec:
   rules:
+{{ if eq .Values.region "eu" }}
+    - host: {{.Values.ingress.host_eu}}
+{{ else }}
+    - host: {{.Values.ingress.host_us}}
+{{ end }}
+      http:
+        paths:
+        - path: /drafts/content
+          backend:
+            serviceName: {{.Values.service.name}}
+            servicePort: 8080
     - host: {{.Values.ingress.host}}
       http:
         paths:
