@@ -11,7 +11,7 @@ metadata:
     ingress.kubernetes.io/auth-realm: "Authentication Required"
 spec:
   rules:
-    - host: {{.Values.ingress.host}}
+    - host: "*.ft.com"
       http:
         paths:
         - path: /drafts/content

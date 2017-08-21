@@ -9,5 +9,3 @@ image:
 #resources:
 #  limits:
 #    memory: 256Mi
-ingress:
-  host: "*.ft.com"
