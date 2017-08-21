@@ -4,6 +4,7 @@
 service:
   name: "" # The name of the service, should be defined in the specific app-configs folder.
   hasHealthcheck: "true"
+  hasOpenAPI: "true"
 replicaCount: 2
 image:
   repository: coco/draft-content-api
@@ -11,5 +12,9 @@ image:
 #resources:
 #  limits:
 #    memory: 256Mi
+ingress:
+  host_eu: "pre-prod-eu-pac.ft.com"
+  host_us: "pre-prod-us-pac.ft.com"
+  host: "pre-prod-pac.ft.com"
 
 

@@ -33,7 +33,7 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: global-config
-              key: content-api-key
+              key: upp-api-key
         ports: 
         - containerPort: 8080 
         livenessProbe: 
