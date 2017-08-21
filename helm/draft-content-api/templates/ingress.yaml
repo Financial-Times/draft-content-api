@@ -11,10 +11,12 @@ metadata:
     ingress.kubernetes.io/auth-realm: "Authentication Required"
 spec:
   rules:
-{{ if eq .Values.region "eu" }}
-    - host: {{.Values.ingress.host_eu}}
-{{ else }}
-    - host: {{.Values.ingress.host_us}}
+{{ if eq .Values.target_env "preProdPac" }} 
+  {{ if eq .Values.region "eu" }}
+    - host: {{.Values.ingress.host_pre_prod_eu}}
+  {{ else }}
+    - host: {{.Values.ingress.host_pre_prod_us}}
+  {{end}}
 {{ end }}
       http:
         paths:
