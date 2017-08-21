@@ -1,6 +1,6 @@
 *.iml
 .idea
-draft-content-api*
+/draft-content-api*
 vendor/*/
 .project
 .vscode
