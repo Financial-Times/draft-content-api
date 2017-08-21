@@ -1,4 +1,4 @@
-# Draft content API
+# Draft Content API
 
 [![Circle CI](https://circleci.com/gh/Financial-Times/draft-content-api/tree/master.png?style=shield)](https://circleci.com/gh/Financial-Times/draft-content-api/tree/master)[![Go Report Card](https://goreportcard.com/badge/github.com/Financial-Times/draft-content-api)](https://goreportcard.com/report/github.com/Financial-Times/draft-content-api) [![Coverage Status](https://coveralls.io/repos/github/Financial-Times/draft-content-api/badge.svg)](https://coveralls.io/github/Financial-Times/draft-content-api)
 
@@ -8,7 +8,7 @@ Draft content API is a microservice that provides access to draft content stored
 At the moment the service is a simple proxy to UPP Content API.
 
 ## Installation
-      
+
 Download the source code, dependencies and test dependencies:
 
         go get -u github.com/kardianos/govendor
@@ -37,7 +37,7 @@ Options:
         --content-endpoint=""                    Endpoint to get content from CAPI ($CONTENT_ENDPOINT)
         --content-api-key=""                     API key to access CAPI ($CAPI_APIKEY)
 
-        
+
 3. Test:
 
     1. Either using curl:
@@ -65,7 +65,7 @@ Or using [httpie](https://github.com/jkbrzt/httpie):
 
     http GET http://localhost:8080/draft/content/b7b871f6-8a89-11e4-8e24-00144feabdc0
 
-At the moment this endpoint is a proxy to the content available in UPP, 
+At the moment this endpoint is a proxy to the content available in UPP,
 so it returns a payload consistent to the Content API in UPP.
 
 ## Healthchecks
