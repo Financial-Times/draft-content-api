@@ -11,7 +11,7 @@ metadata:
     ingress.kubernetes.io/auth-realm: "Authentication Required"
 spec:
   rules:
-{{ if eq .Values.environment "pre-prod-pac" }} 
+{{ if eq .Values.target_env "preProdPac" }} 
   {{ if eq .Values.region "eu" }}
     - host: {{.Values.ingress.host_pre_prod_eu}}
   {{ else }}
