@@ -34,8 +34,10 @@ Options:
         --app-system-code="draft-content-api"    System Code of the application ($APP_SYSTEM_CODE)
         --app-name="draft-content-api"           Application name ($APP_NAME)
         --port="8080"                            Port to listen on ($APP_PORT)
-        --content-endpoint=""                    Endpoint to get content from CAPI ($CONTENT_ENDPOINT)
-        --content-api-key=""                     API key to access CAPI ($CAPI_APIKEY)
+        --content-rw-endpoint="..."              Endpoint for draft content RW ($DRAFT_CONTENT_RW_ENDPOINT)
+        --mam-endpoint="..."                     Endpoint for draft content mapper ($DRAFT_CONTENT_MAPPER_ENDPOINT)
+        --content-endpoint="..."                 Endpoint to get content from CAPI ($CONTENT_ENDPOINT)
+        --content-api-key="..."                  API key to access CAPI ($CAPI_APIKEY)
 
 
 3. Test:
@@ -77,12 +79,15 @@ Admin endpoints are:
 
 `/__build-info`
 
-At the moment the `/__health` and `/__gtg` are checking the availability of the UPP Content API.
+The `/__health` and `/__gtg` check the availability of:
+* the generic R/W service (where draft content is stored in native format)
+* the draft content mapper service (where draft content is mapped from native to UPP format)
+* the UPP Content API (where published content is stored)
 
 
 ### Logging
 
-* The application uses [logrus](https://github.com/Sirupsen/logrus); the log file is initialised in [main.go](main.go).
+* The application uses [logrus](https://github.com/sirupsen/logrus); the log file is initialised in [main.go](main.go).
 * Logging requires an `env` app parameter, for all environments other than `local` logs are written to file.
 * When running locally, logs are written to console. If you want to log locally to file, you need to pass in an env parameter that is != `local`.
 * NOTE: `/__build-info` and `/__gtg` endpoints are not logged as they are called every second from varnish/vulcand and this information is not needed in logs/splunk.

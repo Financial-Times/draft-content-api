@@ -40,6 +40,20 @@ func main() {
 		EnvVar: "APP_PORT",
 	})
 
+	contentRWEndpoint := app.String(cli.StringOpt{
+		Name:   "content-rw-endpoint",
+		Value:  "http://localhost:8888",
+		Desc:   "Endpoint for draft content",
+		EnvVar: "DRAFT_CONTENT_RW_ENDPOINT",
+	})
+
+	mamEndpoint := app.String(cli.StringOpt{
+		Name:   "mam-endpoint",
+		Value:  "http://localhost:11070",
+		Desc:   "Endpoint for mapping Methode article draft content",
+		EnvVar: "DRAFT_CONTENT_MAM_ENDPOINT",
+	})
+
 	contentEndpoint := app.String(cli.StringOpt{
 		Name:   "content-endpoint",
 		Value:  "http://test.api.ft.com/content",
@@ -67,9 +81,13 @@ func main() {
 	app.Action = func() {
 		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
 
+		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint)
+		draftContentMapperService := content.NewDraftContentMapperService(*mamEndpoint)
+
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey)
+
 		contentHandler := content.NewHandler(cAPI)
-		healthService := health.NewHealthService(*appSystemCode, *appName, appDescription, cAPI)
+		healthService := health.NewHealthService(*appSystemCode, *appName, appDescription, draftContentRWService, draftContentMapperService, cAPI)
 		serveEndpoints(*port, apiYml, contentHandler, healthService)
 	}
 	err := app.Run(os.Args)
