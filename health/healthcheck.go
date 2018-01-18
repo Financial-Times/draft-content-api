@@ -6,6 +6,7 @@ import (
 
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/service-status-go/gtg"
+	"time"
 )
 
 type externalService interface {
@@ -34,7 +35,12 @@ func NewHealthService(appSystemCode string, appName string, appDescription strin
 }
 
 func (service *HealthService) HealthCheckHandleFunc() func(w http.ResponseWriter, r *http.Request) {
-	return health.Handler(service)
+	hc := health.TimedHealthCheck{
+		service.HealthCheck,
+		10 * time.Second,
+	}
+
+	return health.Handler(hc)
 }
 
 func (service *HealthService) draftContentRWCheck() health.Check {
@@ -83,10 +89,20 @@ func externalServiceChecker(s externalService, serviceName string) func() (strin
 }
 
 func (service *HealthService) GTG() gtg.Status {
-	for _, check := range service.Checks {
-		if _, err := check.Checker(); err != nil {
+	fns := []gtg.StatusChecker{}
+
+	for _, c := range service.Checks {
+		fns = append(fns, gtgCheck(c.Checker))
+	}
+
+	return gtg.FailFastParallelCheck(fns)()
+}
+
+func gtgCheck(handler func() (string, error)) func() gtg.Status {
+	return func() gtg.Status {
+		if _, err := handler(); err != nil {
 			return gtg.Status{GoodToGo: false, Message: err.Error()}
 		}
+		return gtg.Status{GoodToGo: true}
 	}
-	return gtg.Status{GoodToGo: true}
 }
