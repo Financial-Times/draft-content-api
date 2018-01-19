@@ -1,6 +1,5 @@
 dry-run: null
-hookfiles: null
-language: go
+hookfiles: ./api/dredd-hooks.js
 sandbox: false
 server: ./draft-content-api
 server-wait: 3
