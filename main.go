@@ -117,7 +117,7 @@ func serveEndpoints(port string, apiYml *string, contentHandler *content.Handler
 	monitoringRouter = httphandlers.HTTPMetricsHandler(metrics.DefaultRegistry, monitoringRouter)
 
 	http.HandleFunc("/__health", healthService.HealthCheckHandleFunc())
-	http.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.GTG))
+	http.HandleFunc(status.GTGPath, status.NewGoodToGoHandler(healthService.GTGChecker()))
 	http.HandleFunc(status.BuildInfoPath, status.BuildInfoHandler)
 
 	http.Handle("/", monitoringRouter)

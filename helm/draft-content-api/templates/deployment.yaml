@@ -35,10 +35,10 @@ spec:
               key: content-endpoint
         - name: CAPI_APIKEY
           valueFrom:
-            configMapKeyRef:
-              name: global-config
+            secretKeyRef:
+              name: draft-content-api
               key: upp-api-key
-        ports: 
+        ports:
         - containerPort: 8080 
         livenessProbe: 
           tcpSocket: 

@@ -54,8 +54,6 @@ jobs:
       - image: bankrs/golang-dredd:go1.8.3-dredd4.4.0
         environment:
           GOPATH: /go
-          ANNOTATIONS_PUBLISH_ENDPOINT: https://httpbin.org/post
-          ANNOTATIONS_PUBLISH_AUTH: fake-user:fake-pass
     steps:
       - checkout
       - run:

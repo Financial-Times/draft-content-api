@@ -88,14 +88,14 @@ func externalServiceChecker(s externalService, serviceName string) func() (strin
 	}
 }
 
-func (service *HealthService) GTG() gtg.Status {
+func (service *HealthService) GTGChecker() gtg.StatusChecker {
 	fns := []gtg.StatusChecker{}
 
 	for _, c := range service.Checks {
 		fns = append(fns, gtgCheck(c.Checker))
 	}
 
-	return gtg.FailFastParallelCheck(fns)()
+	return gtg.FailFastParallelCheck(fns)
 }
 
 func gtgCheck(handler func() (string, error)) func() gtg.Status {

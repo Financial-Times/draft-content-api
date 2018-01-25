@@ -92,7 +92,7 @@ func TestHappyGTG(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "/__gtg", nil)
 	w := httptest.NewRecorder()
-	status.NewGoodToGoHandler(h.GTG)(w, req)
+	status.NewGoodToGoHandler(h.GTGChecker())(w, req)
 
 	resp := w.Result()
 
@@ -111,7 +111,7 @@ func TestUnhappyGTG(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "/__gtg", nil)
 	w := httptest.NewRecorder()
-	status.NewGoodToGoHandler(h.GTG)(w, req)
+	status.NewGoodToGoHandler(h.GTGChecker())(w, req)
 
 	resp := w.Result()
 
