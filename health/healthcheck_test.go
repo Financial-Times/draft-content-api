@@ -1,24 +1,24 @@
 package health
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
-	status "github.com/Financial-Times/service-status-go/httphandlers"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	status "github.com/Financial-Times/service-status-go/httphandlers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestHappyHealthCheck(t *testing.T) {
-	cAPI := new(ContentAPIMock)
-	cAPI.On("GTG").Return(nil)
-	cAPI.On("Endpoint").Return("http://cool.api.ft.com/content")
+	draftContentRW := mockHealthyExternalService()
+	draftContentMapper := mockHealthyExternalService()
+	cAPI := mockHealthyExternalService()
 
-	h := NewHealthService("", "", "", cAPI)
+	h := NewHealthService("", "", "", draftContentRW, draftContentMapper, cAPI)
 
 	req := httptest.NewRequest("GET", "/__health", nil)
 	w := httptest.NewRecorder()
@@ -30,21 +30,31 @@ func TestHappyHealthCheck(t *testing.T) {
 	hcBody := make(map[string]interface{})
 	err := json.NewDecoder(resp.Body).Decode(&hcBody)
 	assert.NoError(t, err)
-	assert.Len(t, hcBody["checks"], 1)
+	assert.Len(t, hcBody["checks"], 3)
 	assert.True(t, hcBody["ok"].(bool))
-	check := hcBody["checks"].([]interface{})[0].(map[string]interface{})
-	assert.True(t, check["ok"].(bool))
-	assert.Equal(t, "Content API is healthy", check["checkOutput"])
-	assert.Equal(t, "Content API is not available at http://cool.api.ft.com/content", check["technicalSummary"])
+
+	checks := hcBody["checks"].([]interface{})
+	for _, c := range checks {
+		check := c.(map[string]interface{})
+		assert.True(t, check["ok"].(bool))
+
+		if check["id"] == "check-content-api-health" {
+			assert.Equal(t, "Content API is good-to-go", check["checkOutput"])
+			assert.Equal(t, "Content API is not available at http://cool.api.ft.com/content", check["technicalSummary"])
+		}
+	}
 
 	cAPI.AssertExpectations(t)
 }
 
 func TestUnhappyHealthCheck(t *testing.T) {
-	cAPI := new(ContentAPIMock)
+	draftContentRW := mockHealthyExternalService()
+	draftContentMapper := mockHealthyExternalService()
+	cAPI := new(ExternalServiceMock)
 	cAPI.On("GTG").Return(errors.New("computer says no"))
 	cAPI.On("Endpoint").Return("http://cool.api.ft.com/content")
-	h := NewHealthService("", "", "", cAPI)
+
+	h := NewHealthService("", "", "", draftContentRW, draftContentMapper, cAPI)
 
 	req := httptest.NewRequest("GET", "/__health", nil)
 	w := httptest.NewRecorder()
@@ -56,25 +66,33 @@ func TestUnhappyHealthCheck(t *testing.T) {
 	hcBody := make(map[string]interface{})
 	err := json.NewDecoder(resp.Body).Decode(&hcBody)
 	assert.NoError(t, err)
-	assert.Len(t, hcBody["checks"], 1)
+	assert.Len(t, hcBody["checks"], 3)
 	assert.False(t, hcBody["ok"].(bool))
-	check := hcBody["checks"].([]interface{})[0].(map[string]interface{})
-	assert.False(t, check["ok"].(bool))
-	assert.Equal(t, "computer says no", check["checkOutput"])
-	assert.Equal(t, "Content API is not available at http://cool.api.ft.com/content", check["technicalSummary"])
+
+	checks := hcBody["checks"].([]interface{})
+	for _, c := range checks {
+		check := c.(map[string]interface{})
+		if check["id"] == "check-content-api-health" {
+			assert.False(t, check["ok"].(bool))
+			assert.Equal(t, "computer says no", check["checkOutput"])
+			assert.Equal(t, "Content API is not available at http://cool.api.ft.com/content", check["technicalSummary"])
+			break
+		}
+	}
 
 	cAPI.AssertExpectations(t)
 }
 
 func TestHappyGTG(t *testing.T) {
-	cAPI := new(ContentAPIMock)
-	cAPI.On("GTG").Return(nil)
-	cAPI.On("Endpoint").Return("http://cool.api.ft.com/content")
-	h := NewHealthService("", "", "", cAPI)
+	draftContentRW := mockHealthyExternalService()
+	draftContentMapper := mockHealthyExternalService()
+	cAPI := mockHealthyExternalService()
+
+	h := NewHealthService("", "", "", draftContentRW, draftContentMapper, cAPI)
 
 	req := httptest.NewRequest("GET", "/__gtg", nil)
 	w := httptest.NewRecorder()
-	status.NewGoodToGoHandler(h.GTG)(w, req)
+	status.NewGoodToGoHandler(h.GTGChecker())(w, req)
 
 	resp := w.Result()
 
@@ -84,14 +102,16 @@ func TestHappyGTG(t *testing.T) {
 }
 
 func TestUnhappyGTG(t *testing.T) {
-	cAPI := new(ContentAPIMock)
+	draftContentRW := mockHealthyExternalService()
+	draftContentMapper := mockHealthyExternalService()
+	cAPI := new(ExternalServiceMock)
 	cAPI.On("GTG").Return(errors.New("computer says no"))
 	cAPI.On("Endpoint").Return("http://cool.api.ft.com/content")
-	h := NewHealthService("", "", "", cAPI)
+	h := NewHealthService("", "", "", draftContentRW, draftContentMapper, cAPI)
 
 	req := httptest.NewRequest("GET", "/__gtg", nil)
 	w := httptest.NewRecorder()
-	status.NewGoodToGoHandler(h.GTG)(w, req)
+	status.NewGoodToGoHandler(h.GTGChecker())(w, req)
 
 	resp := w.Result()
 
@@ -103,21 +123,24 @@ func TestUnhappyGTG(t *testing.T) {
 	cAPI.AssertExpectations(t)
 }
 
-type ContentAPIMock struct {
+type ExternalServiceMock struct {
 	mock.Mock
 }
 
-func (m ContentAPIMock) Get(ctx context.Context, contentUUID string) (*http.Response, error) {
-	args := m.Called(ctx, contentUUID)
-	return args.Get(0).(*http.Response), args.Error(1)
-}
-
-func (m ContentAPIMock) GTG() error {
+func (m *ExternalServiceMock) GTG() error {
 	args := m.Called()
 	return args.Error(0)
 }
 
-func (m ContentAPIMock) Endpoint() string {
+func (m *ExternalServiceMock) Endpoint() string {
 	args := m.Called()
 	return args.String(0)
+}
+
+func mockHealthyExternalService() *ExternalServiceMock {
+	srv := new(ExternalServiceMock)
+	srv.On("GTG").Return(nil)
+	srv.On("Endpoint").Return("http://cool.api.ft.com/content")
+
+	return srv
 }

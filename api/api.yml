@@ -31,13 +31,13 @@ paths:
           description: The UUID of the content
           required: true
           type: string
-          x-example: 6c0e73e6-4467-11e7-91a0-9e5c470d1f21
+          x-example: 4f2f97ea-b8ec-11e4-b8e6-00144feab7de
       responses:
         200:
           description: Returns the UPP format json document for the content UUID
           examples:
             application/json:
-              id: http://www.ft.com/thing/6c0e73e6-4467-11e7-91a0-9e5c470d1f21
+              id: http://www.ft.com/thing/4f2f97ea-b8ec-11e4-b8e6-00144feab7de
         400:
           description: Invalid uuid supplied
         404:
