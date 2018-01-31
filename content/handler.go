@@ -2,15 +2,16 @@ package content
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
 	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"errors"
 )
 
 type Handler struct {
@@ -72,14 +73,14 @@ func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
 	draftContent := string(raw)
 	draftHeaders := map[string]string{
 		tidutils.TransactionIDHeader: tID,
-		originSystemIdHeader: originSystemId,
+		originSystemIdHeader:         originSystemId,
 	}
 
 	writeLog.Info("write native content to content RW ...")
 	err = h.contentRW.Write(ctx, uuid, &draftContent, draftHeaders)
 	if err != nil {
-		writeLog.WithError(err).Error("Error in writing draft annotations")
-		writeMessage(w, fmt.Sprintf("Error in writing draft annotations: %v", err.Error()), http.StatusInternalServerError)
+		writeLog.WithError(err).Error("Error in writing draft content")
+		writeMessage(w, fmt.Sprintf("Error in writing draft content: %v", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
