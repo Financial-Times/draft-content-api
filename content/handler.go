@@ -27,21 +27,35 @@ func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 	uuid := vestigo.Param(r, "uuid")
 	tID := tidutils.GetTransactionIDFromRequest(r)
 	ctx := tidutils.TransactionAwareContext(context.Background(), tID)
-	resp, err := h.uppContentAPI.Get(ctx, uuid)
+
+	var status = http.StatusOK
+	content, err := h.contentRW.Read(ctx, uuid)
 	if err != nil {
-		log.WithError(err).WithField(tidutils.TransactionIDKey, tID).WithField("uuid", uuid).Error("Error in calling Content API")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		if err == ErrDraftNotFound {
+			readLog := log.WithField(tidutils.TransactionIDKey, tID).WithField("uuid", uuid)
+			readLog.Warn("Draft not found in PAC, trying UPP")
+			uppResp, err := h.uppContentAPI.Get(ctx, uuid)
+			if err != nil {
+				readLog.WithError(err).Error("Error in calling Content API")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if uppResp.StatusCode == http.StatusOK || uppResp.StatusCode == http.StatusNotFound || uppResp.StatusCode == http.StatusBadRequest {
+				status = uppResp.StatusCode
+				content = uppResp.Body
+			}
+		}
+
+		if content == nil {
+			writeMessage(w, "Service unavailable", http.StatusServiceUnavailable)
+			return
+		}
 	}
-	defer resp.Body.Close()
+	defer content.Close()
 
 	w.Header().Set("Content-Type", "application/json")
-	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusBadRequest {
-		w.WriteHeader(resp.StatusCode)
-		io.Copy(w, resp.Body)
-	} else {
-		writeMessage(w, "Service unavailable", http.StatusServiceUnavailable)
-	}
+	w.WriteHeader(status)
+	io.Copy(w, content)
 }
 
 func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {

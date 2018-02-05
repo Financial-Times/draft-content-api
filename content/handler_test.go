@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -25,16 +26,17 @@ type mockDraftContentRW struct {
 	mock.Mock
 }
 
-func TestHappyContentAPI(t *testing.T) {
-	cAPIServerMock := newContentAPIServerMock(t, http.StatusOK, aContentBody)
-	defer cAPIServerMock.Close()
+func TestHappyRead(t *testing.T) {
+	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
-	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
-	h := NewHandler(cAPI, nil)
+	rw := &mockDraftContentRW{}
+	rw.On("Read", mock.Anything, contentUUID).Return(ioutil.NopCloser(strings.NewReader(aContentBody)), nil)
+
+	h := NewHandler(nil, rw)
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
-	req := httptest.NewRequest("GET", "http://api.ft.com/drafts/content/83a201c6-60cd-11e7-91a7-502f7ee26895", nil)
+	req := httptest.NewRequest("GET", fmt.Sprintf("http://api.ft.com/drafts/content/%s", contentUUID), nil)
 	req.Header.Set(tidutils.TransactionIDHeader, testTID)
 	w := httptest.NewRecorder()
 
@@ -45,14 +47,71 @@ func TestHappyContentAPI(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.NoError(t, err)
 	assert.Equal(t, aContentBody, string(body))
+	rw.AssertExpectations(t)
 }
 
-func TestContentAPI404(t *testing.T) {
+func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
+	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
+
+	rw := &mockDraftContentRW{}
+	rw.On("Read", mock.Anything, contentUUID).Return(nil, ErrDraftNotFound)
+
+	cAPIServerMock := newContentAPIServerMock(t, http.StatusOK, aContentBody)
+	defer cAPIServerMock.Close()
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
+
+	h := NewHandler(cAPI, rw)
+	r := vestigo.NewRouter()
+	r.Get("/drafts/content/:uuid", h.ReadContent)
+
+	req := httptest.NewRequest("GET", fmt.Sprintf("http://api.ft.com/drafts/content/%s", contentUUID), nil)
+	req.Header.Set(tidutils.TransactionIDHeader, testTID)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+	resp := w.Result()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.NoError(t, err)
+	assert.Equal(t, aContentBody, string(body))
+	rw.AssertExpectations(t)
+}
+
+func TestReadNoBackOffForOtherErrors(t *testing.T) {
+	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
+
+	rw := &mockDraftContentRW{}
+	rw.On("Read", mock.Anything, contentUUID).Return(nil, errors.New("this should never happen"))
+
+	h := NewHandler(nil, rw)
+	r := vestigo.NewRouter()
+	r.Get("/drafts/content/:uuid", h.ReadContent)
+
+	req := httptest.NewRequest("GET", fmt.Sprintf("http://api.ft.com/drafts/content/%s", contentUUID), nil)
+	req.Header.Set(tidutils.TransactionIDHeader, testTID)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+	resp := w.Result()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
+	assert.NoError(t, err)
+	assert.Equal(t, "{\"message\": \"Service unavailable\"}", string(body))
+	rw.AssertExpectations(t)
+}
+
+func TestReadNotFoundAnywhere(t *testing.T) {
 	cAPIServerMock := newContentAPIServerMock(t, http.StatusNotFound, "not found")
 	defer cAPIServerMock.Close()
 
+	rw := &mockDraftContentRW{}
+	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
+
 	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
-	h := NewHandler(cAPI, nil)
+	h := NewHandler(cAPI, rw)
+
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -67,14 +126,18 @@ func TestContentAPI404(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	assert.NoError(t, err)
 	assert.Equal(t, "not found", string(body))
+	rw.AssertExpectations(t)
 }
 
-func TestContentAPI504(t *testing.T) {
+func TestReadContentAPI504(t *testing.T) {
 	cAPIServerMock := newContentAPIServerMock(t, http.StatusGatewayTimeout, "gateway time out")
 	defer cAPIServerMock.Close()
 
+	rw := &mockDraftContentRW{}
+	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
+
 	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
-	h := NewHandler(cAPI, nil)
+	h := NewHandler(cAPI, rw)
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -89,11 +152,14 @@ func TestContentAPI504(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 	assert.NoError(t, err)
 	assert.Equal(t, "{\"message\": \"Service unavailable\"}", string(body))
+	rw.AssertExpectations(t)
 }
 
-func TestInvalidURL(t *testing.T) {
+func TestReadInvalidURL(t *testing.T) {
+	rw := &mockDraftContentRW{}
+	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
 	cAPI := NewContentAPI(":#", testAPIKey)
-	h := NewHandler(cAPI, nil)
+	h := NewHandler(cAPI, rw)
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -108,14 +174,17 @@ func TestInvalidURL(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.NoError(t, err)
 	assert.Equal(t, "parse :: missing protocol scheme\n", string(body))
+	rw.AssertExpectations(t)
 }
 
-func TestConnectionError(t *testing.T) {
+func TestReadConnectionError(t *testing.T) {
+	rw := &mockDraftContentRW{}
+	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
 	cAPIServerMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	cAPIServerMock.Close()
 
 	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
-	h := NewHandler(cAPI, nil)
+	h := NewHandler(cAPI, rw)
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -129,6 +198,7 @@ func TestConnectionError(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.NoError(t, err)
+	rw.AssertExpectations(t)
 }
 
 func TestWriteNativeContent(t *testing.T) {
@@ -262,6 +332,16 @@ func newContentAPIServerMock(t *testing.T, status int, body string) *httptest.Se
 		w.Write([]byte(body))
 	}))
 	return ts
+}
+
+func (m *mockDraftContentRW) Read(ctx context.Context, contentUUID string) (io.ReadCloser,error) {
+	args := m.Called(ctx, contentUUID)
+	var body io.ReadCloser
+	o := args.Get(0)
+	if o != nil {
+		body = o.(io.ReadCloser)
+	}
+	return body, args.Error(1)
 }
 
 func (m *mockDraftContentRW) Write(ctx context.Context, contentUUID string, content *string, headers map[string]string) error {

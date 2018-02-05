@@ -82,8 +82,8 @@ func main() {
 	app.Action = func() {
 		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
 
-		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint)
 		draftContentMapperService := content.NewDraftContentMapperService(*mamEndpoint)
+		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint, draftContentMapperService)
 
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey)
 
