@@ -14,7 +14,7 @@ import (
 	"os"
 )
 
-const appDescription = "UPP Golang Microservice Template short description - please amend"
+const appDescription = "PAC Draft Content"
 
 func main() {
 	app := cli.App("draft-content-api", appDescription)

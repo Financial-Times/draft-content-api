@@ -57,18 +57,28 @@ Options:
 
 ## Service endpoints
 
+Note that the read endpoint is `/drafts/content/{uuid}` whereas the write endpoint is `/drafts/nativecontent/{uuid}`.
+
 ### GET
 
 Using curl:
 
-    curl http://localhost:8080/draft/content/b7b871f6-8a89-11e4-8e24-00144feabdc0 | json_pp`
+    curl http://localhost:8080/drafts/content/b7b871f6-8a89-11e4-8e24-00144feabdc0 | json_pp`
 
 Or using [httpie](https://github.com/jkbrzt/httpie):
 
-    http GET http://localhost:8080/draft/content/b7b871f6-8a89-11e4-8e24-00144feabdc0
+    http GET http://localhost:8080/drafts/content/b7b871f6-8a89-11e4-8e24-00144feabdc0
 
 At the moment this endpoint is a proxy to the content available in UPP,
 so it returns a payload consistent to the Content API in UPP.
+
+### PUT
+
+Using curl:
+
+    curl -X PUT http://localhost:8080/drafts/nativecontent/b7b871f6-8a89-11e4-8e24-00144feabdc0 --data-binary "@/path/to/file.json"
+
+This returns a 200 status with no body.
 
 ## Healthchecks
 Admin endpoints are:

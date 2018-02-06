@@ -18,3 +18,8 @@ spec:
           backend:
             serviceName: {{.Values.service.name}}
             servicePort: 8080
+        - path: /drafts/nativecontent
+          backend:
+            serviceName: {{.Values.service.name}}
+            servicePort: 8080
+            

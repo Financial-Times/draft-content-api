@@ -102,6 +102,7 @@ func validateOrigin(id string) (string, error) {
 }
 
 func writeMessage(w http.ResponseWriter, errMsg string, status int) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	jsonMsg := fmt.Sprintf(`{"message": "%v"}`, errMsg)
 	w.Write([]byte(jsonMsg))
