@@ -20,7 +20,7 @@ paths:
   /drafts/content/{uuid}:
     get:
       summary: Get Content
-      description: Returns the draft content with the given uuid.
+      description: Returns the draft content with the given uuid in UPP format.
       tags:
         - Draft Content
       produces:
@@ -42,6 +42,33 @@ paths:
           description: Invalid uuid supplied
         404:
           description: Content not found
+
+  /drafts/nativecontent/{uuid}:
+    put:
+      summary: Save Content
+      description: Saves the draft content with the given uuid in native (CMS) format.
+      tags:
+        - Draft Content
+      parameters:
+        - name: uuid
+          in: path
+          description: The UUID of the content
+          required: true
+          type: string
+          x-example: 4f2f97ea-b8ec-11e4-b8e6-00144feab7de
+        - name: X-Origin-System-Id
+          in: header
+          description: The origin system ID
+          required: true
+          type: string
+          x-example: methode-web-pub
+      responses:
+        200:
+          description: The content has been saved successfully.
+        400:
+          description: Invalid uuid or `X-Origin-System-Id` supplied, or unreadable HTTP entity payload.
+        500:
+          description: Error writing content to store.
 
   /__health:
     get:

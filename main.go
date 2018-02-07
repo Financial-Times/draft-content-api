@@ -14,7 +14,7 @@ import (
 	"os"
 )
 
-const appDescription = "UPP Golang Microservice Template short description - please amend"
+const appDescription = "PAC Draft Content"
 
 func main() {
 	app := cli.App("draft-content-api", appDescription)
@@ -75,6 +75,7 @@ func main() {
 		EnvVar: "API_YML",
 	})
 
+	log.SetFormatter(&log.JSONFormatter{})
 	log.SetLevel(log.InfoLevel)
 	log.Infof("[Startup] %v is starting", *appSystemCode)
 
@@ -86,7 +87,7 @@ func main() {
 
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey)
 
-		contentHandler := content.NewHandler(cAPI)
+		contentHandler := content.NewHandler(cAPI, draftContentRWService)
 		healthService := health.NewHealthService(*appSystemCode, *appName, appDescription, draftContentRWService, draftContentMapperService, cAPI)
 		serveEndpoints(*port, apiYml, contentHandler, healthService)
 	}
@@ -101,7 +102,8 @@ func serveEndpoints(port string, apiYml *string, contentHandler *content.Handler
 
 	r := vestigo.NewRouter()
 
-	r.Get("/drafts/content/:uuid", contentHandler.ServeHTTP)
+	r.Get("/drafts/content/:uuid", contentHandler.ReadContent)
+	r.Put("/drafts/nativecontent/:uuid", contentHandler.WriteNativeContent)
 
 	if apiYml != nil {
 		apiEndpoint, err := api.NewAPIEndpointForFile(*apiYml)
