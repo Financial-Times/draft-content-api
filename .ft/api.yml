@@ -31,18 +31,17 @@ paths:
           description: The UUID of the content
           required: true
           type: string
-          x-example: 4f2f97ea-b8ec-11e4-b8e6-00144feab7de
+          x-example: 068da091-da3f-4196-8948-9084f6d0856a
       responses:
         200:
           description: Returns the UPP format json document for the content UUID
           examples:
             application/json:
-              id: http://www.ft.com/thing/4f2f97ea-b8ec-11e4-b8e6-00144feab7de
+              id: http://www.ft.com/thing/068da091-da3f-4196-8948-9084f6d0856a
         400:
           description: Invalid uuid supplied
         404:
           description: Content not found
-
   /drafts/nativecontent/{uuid}:
     put:
       summary: Save Content
@@ -55,7 +54,7 @@ paths:
           description: The UUID of the content
           required: true
           type: string
-          x-example: 4f2f97ea-b8ec-11e4-b8e6-00144feab7de
+          x-example: 068da091-da3f-4196-8948-9084f6d0856a
         - name: X-Origin-System-Id
           in: header
           description: The origin system ID
@@ -69,7 +68,6 @@ paths:
           description: Invalid uuid or `X-Origin-System-Id` supplied, or unreadable HTTP entity payload.
         500:
           description: Error writing content to store.
-
   /__health:
     get:
       summary: Healthchecks
@@ -101,7 +99,6 @@ paths:
                   checkOutput: gtg returned a non-200 HTTP status
                   lastUpdated: 2017-08-03T10:44:32.324709638+01:00
               ok: true
-
   /__build-info:
     get:
       summary: Build Information

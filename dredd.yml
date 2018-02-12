@@ -1,5 +1,5 @@
 dry-run: null
-hookfiles: ./api/dredd-hooks.js
+hookfiles: null
 sandbox: false
 server: ./draft-content-api
 server-wait: 3
@@ -29,5 +29,5 @@ hooks-worker-term-retry: 500
 hooks-worker-handler-host: 127.0.0.1
 hooks-worker-handler-port: 61321
 config: ./dredd.yml
-blueprint: ./api/api.yml
+blueprint: ./.ft/api.yml
 endpoint: 'http://localhost:8080'

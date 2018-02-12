@@ -1,0 +1,22 @@
+version: 1
+fixtures:
+  /content/068da091-da3f-4196-8948-9084f6d0856a:
+    get:
+      status: 200
+      body:
+        id: http://www.ft.com/thing/068da091-da3f-4196-8948-9084f6d0856a
+  /content/4f2f97ea-b8ec-11e4-b8e6-00144feab7de:
+    get:
+      status: 200
+      body:
+        id: http://www.ft.com/thing/4f2f97ea-b8ec-11e4-b8e6-00144feab7de
+  /drafts/content/068da091-da3f-4196-8948-9084f6d0856a:
+    put:
+      status: 200
+      expectations:
+        headers:
+          x-origin-system-id: methode-web-pub
+  /__gtg:
+    get:
+      status: 200
+      body: OK
