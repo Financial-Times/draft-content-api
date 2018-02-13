@@ -6,6 +6,8 @@ replicaCount: 2
 image:
   repository: coco/draft-content-api
   pullPolicy: Always
-#resources:
-#  limits:
-#    memory: 256Mi
+resources:
+  requests:
+    memory: 10Mi
+  limits:
+    memory: 128Mi
