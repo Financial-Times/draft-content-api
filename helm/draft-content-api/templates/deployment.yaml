@@ -1,5 +1,3 @@
-##this is an example deployment.yaml that should be customized in order to meet the configuration for app k8s deployment
-
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -22,13 +20,13 @@ spec:
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-              topologyKey: "kubernetes.io/hostname"
+          - labelSelector:
               matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                    - {{ .Values.service.name }}
+              - key: app
+                operator: In
+                values:
+                - "{{ .Values.service.name }}"
+            topologyKey: "kubernetes.io/hostname"
       containers:
       - name: {{ .Values.service.name }}
         image: "{{ .Values.image.repository }}:{{ .Chart.Version }}"
