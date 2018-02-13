@@ -1,6 +1,7 @@
 package content
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -20,7 +21,7 @@ func TestMapper(t *testing.T) {
 
 	m := NewDraftContentMapperService(server.URL)
 
-	body, err := m.MapNativeContent(testTID, contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)))
+	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)))
 
 	assert.NoError(t, err)
 	defer body.Close()
@@ -36,7 +37,7 @@ func TestMapperError(t *testing.T) {
 
 	m := NewDraftContentMapperService(server.URL)
 
-	body, err := m.MapNativeContent(testTID, contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)))
+	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)))
 
 	assert.Error(t, err)
 	assert.Nil(t, body)
@@ -49,7 +50,7 @@ func TestMapperBadContent(t *testing.T) {
 
 	m := NewDraftContentMapperService(server.URL)
 
-	body, err := m.MapNativeContent(testTID, contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)))
+	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)))
 
 	assert.Error(t, err)
 	assert.Nil(t, body)
@@ -60,6 +61,7 @@ func mockMapperHttpServer(t *testing.T, status int, expectedBody string, respons
 		assert.Equal(t, "POST", r.Method, "HTTP method")
 		assert.Equal(t, "/map", r.URL.Path)
 		assert.Equal(t, testTID, r.Header.Get(tidutils.TransactionIDHeader), tidutils.TransactionIDHeader)
+		assert.Regexp(t, `^PAC-draft-content-api/\S*\s?$`, r.Header.Get("User-Agent"), "user-agent")
 
 		by, err := ioutil.ReadAll(r.Body)
 		assert.NoError(t, err)

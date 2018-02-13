@@ -21,7 +21,7 @@ var (
 	ErrDraftNotFound            = errors.New("draft content not found in PAC")
 
 	allowedOriginSystemIdValues = map[string]struct{}{
-		"methode-web-pub": struct{}{},
+		"methode-web-pub": {},
 	}
 )
 
@@ -42,13 +42,10 @@ func NewDraftContentRWService(endpoint string, mapper DraftContentMapper) DraftC
 }
 
 func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.ReadCloser, error) {
-	tid, err := tidutils.GetTransactionIDFromContext(ctx)
-	if err != nil {
-		log.Warn("context contains no transaction id")
-	}
-
+	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
 	readLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
-	resp, err := rw.readNativeContent(tid, contentUUID)
+
+	resp, err := rw.readNativeContent(ctx, contentUUID)
 	if err != nil {
 		readLog.WithError(err).Error("Error making the HTTP request to content RW")
 		return nil, err
@@ -57,7 +54,7 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 	var mappedContent io.ReadCloser
 	switch resp.StatusCode {
 	case http.StatusOK:
-		mappedContent, err = rw.mapper.MapNativeContent(tid, contentUUID, resp.Body)
+		mappedContent, err = rw.mapper.MapNativeContent(ctx, contentUUID, resp.Body)
 		if err != nil {
 			readLog.WithError(err).Warn("Mapper error")
 		}
@@ -70,15 +67,15 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 	return mappedContent, err
 }
 
-func (rw *draftContentRW) readNativeContent(tid string, contentUUID string) (*http.Response, error) {
+func (rw *draftContentRW) readNativeContent(ctx context.Context, contentUUID string) (*http.Response, error) {
+	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
 	readLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
 
-	req, err := http.NewRequest("GET", fmt.Sprintf(rwURLPattern, rw.endpoint, contentUUID), nil)
+	req, err := newHttpRequest(ctx,"GET", fmt.Sprintf(rwURLPattern, rw.endpoint, contentUUID), nil)
 	if err != nil {
 		readLog.WithError(err).Error("Error in creating the HTTP read request from content RW")
 		return nil, err
 	}
-	req.Header.Set(tidutils.TransactionIDHeader, tid)
 
 	return rw.httpClient.Do(req)
 }
@@ -88,7 +85,7 @@ func (rw *draftContentRW) Write(ctx context.Context, contentUUID string, content
 
 	writeLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf(rwURLPattern, rw.endpoint, contentUUID), bytes.NewBuffer([]byte(*content)))
+	req, err := newHttpRequest(ctx,"PUT", fmt.Sprintf(rwURLPattern, rw.endpoint, contentUUID), bytes.NewBuffer([]byte(*content)))
 	if err != nil {
 		writeLog.WithError(err).Error("Error in creating the HTTP write request to content RW")
 		return err

@@ -1,6 +1,7 @@
 package content
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,7 +11,7 @@ import (
 )
 
 type DraftContentMapper interface {
-	MapNativeContent(tid string, contentUUID string, nativeBody io.Reader) (io.ReadCloser, error)
+	MapNativeContent(ctx context.Context, contentUUID string, nativeBody io.Reader) (io.ReadCloser, error)
 	GTG() error
 	Endpoint() string
 }
@@ -23,15 +24,15 @@ func NewDraftContentMapperService(endpoint string) DraftContentMapper {
 	return &draftContentMapper{pacExternalService{endpoint, &http.Client{}}}
 }
 
-func (mapper *draftContentMapper) MapNativeContent(tid string, contentUUID string, nativeBody io.Reader) (io.ReadCloser, error) {
+func (mapper *draftContentMapper) MapNativeContent(ctx context.Context, contentUUID string, nativeBody io.Reader) (io.ReadCloser, error) {
+	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
 	mapLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/map", mapper.endpoint), nativeBody)
+	req, err := newHttpRequest(ctx, "POST", fmt.Sprintf("%s/map", mapper.endpoint), nativeBody)
 	if err != nil {
 		mapLog.WithError(err).Error("Error in creating the HTTP request to the mapper")
 		return nil, err
 	}
-	req.Header.Set(tidutils.TransactionIDHeader, tid)
 
 	resp, err := mapper.httpClient.Do(req)
 	if resp.StatusCode != http.StatusOK {

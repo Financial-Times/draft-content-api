@@ -30,7 +30,9 @@ func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 
 	var status = http.StatusOK
 	content, err := h.contentRW.Read(ctx, uuid)
-	if err != nil {
+	if err == nil {
+		defer content.Close()
+	} else {
 		if err == ErrDraftNotFound {
 			readLog := log.WithField(tidutils.TransactionIDKey, tID).WithField("uuid", uuid)
 			readLog.Warn("Draft not found in PAC, trying UPP")
@@ -40,6 +42,7 @@ func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
+			defer uppResp.Body.Close()
 			if uppResp.StatusCode == http.StatusOK || uppResp.StatusCode == http.StatusNotFound || uppResp.StatusCode == http.StatusBadRequest {
 				status = uppResp.StatusCode
 				content = uppResp.Body
@@ -51,7 +54,6 @@ func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	defer content.Close()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

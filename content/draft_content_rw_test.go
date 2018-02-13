@@ -32,7 +32,7 @@ func TestReadContent(t *testing.T) {
 	defer rwServer.Close()
 
 	mapper := mockContentMapper(t)
-	mapper.On("MapNativeContent", testTID, contentUUID, mock.Anything).Return(ioutil.NopCloser(bytes.NewReader(mappedContent)), nil)
+	mapper.On("MapNativeContent", mock.Anything, contentUUID, mock.Anything).Return(ioutil.NopCloser(bytes.NewReader(mappedContent)), nil)
 
 	rw := NewDraftContentRWService(rwServer.URL, mapper)
 
@@ -91,7 +91,7 @@ func TestReadContentMapperError(t *testing.T) {
 	defer rwServer.Close()
 
 	mapper := mockContentMapper(t)
-	mapper.On("MapNativeContent", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.Anything).Return(nil, errors.New("test mapper error"))
+	mapper.On("MapNativeContent", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil, errors.New("test mapper error"))
 
 	rw := NewDraftContentRWService(rwServer.URL, mapper)
 
@@ -174,6 +174,7 @@ func mockWriteToGenericRW(t *testing.T, status int, contentUUID string, systemID
 		assert.Equal(t, fmt.Sprintf("/drafts/content/%s", contentUUID), r.URL.Path)
 		assert.Equal(t, testTID, r.Header.Get(tidutils.TransactionIDHeader), tidutils.TransactionIDHeader)
 		assert.Equal(t, systemID, r.Header.Get(originSystemIdHeader), originSystemIdHeader)
+		assert.Regexp(t, `^PAC-draft-content-api/\S*\s?$`, r.Header.Get("User-Agent"), "user-agent")
 
 		by, err := ioutil.ReadAll(r.Body)
 		assert.NoError(t, err)
@@ -187,8 +188,8 @@ func mockContentMapper(t *testing.T) *mockMapper {
 	return &mockMapper{}
 }
 
-func (m *mockMapper) MapNativeContent(tid string, contentUUID string, nativeBody io.Reader) (io.ReadCloser, error) {
-	args := m.Called(tid, contentUUID, nativeBody)
+func (m *mockMapper) MapNativeContent(ctx context.Context, contentUUID string, nativeBody io.Reader) (io.ReadCloser, error) {
+	args := m.Called(ctx, contentUUID, nativeBody)
 	var body io.ReadCloser
 	o := args.Get(0)
 	if o != nil {
