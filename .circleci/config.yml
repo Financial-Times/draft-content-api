@@ -57,7 +57,7 @@ jobs:
           DRAFT_CONTENT_RW_ENDPOINT: http://localhost:9000
           DRAFT_CONTENT_MAM_ENDPOINT: http://localhost:9000
           CONTENT_ENDPOINT: http://localhost:9000/content
-      - image: peteclarkft/ersatz:0.0.1
+      - image: peteclarkft/ersatz:stable
     steps:
       - checkout
       - run:
