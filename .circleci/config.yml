@@ -57,23 +57,19 @@ jobs:
           DRAFT_CONTENT_RW_ENDPOINT: http://localhost:9000
           DRAFT_CONTENT_MAM_ENDPOINT: http://localhost:9000
           CONTENT_ENDPOINT: http://localhost:9000/content
+      - image: peteclark-ft/ersatz:0.0.1
     steps:
       - checkout
       - run:
           name: External Dependencies
           command: |
             go get -u github.com/kardianos/govendor
-            go get -u github.com/peteclark-ft/ersatz
       - run:
           name: Govendor Sync
           command: govendor sync -v
       - run:
           name: Go Build
           command: go build -v
-      - run:
-          name: Start Mocks
-          command: ersatz
-          background: true
       - run:
           name: Dredd API Testing
           command: dredd

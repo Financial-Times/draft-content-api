@@ -1,5 +1,5 @@
 dry-run: null
-hookfiles: null
+hookfiles: ./.ft/dredd-hooks.js
 sandbox: false
 server: ./draft-content-api
 server-wait: 3
