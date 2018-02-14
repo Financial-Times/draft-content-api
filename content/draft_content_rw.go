@@ -54,7 +54,7 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 	var mappedContent io.ReadCloser
 	switch resp.StatusCode {
 	case http.StatusOK:
-		mappedContent, err = rw.mapper.MapNativeContent(ctx, contentUUID, resp.Body)
+		mappedContent, err = rw.mapper.MapNativeContent(ctx, contentUUID, resp.Body, resp.Header.Get("Content-Type"))
 		if err != nil {
 			readLog.WithError(err).Warn("Mapper error")
 		}

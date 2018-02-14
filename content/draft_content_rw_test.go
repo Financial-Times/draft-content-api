@@ -32,7 +32,7 @@ func TestReadContent(t *testing.T) {
 	defer rwServer.Close()
 
 	mapper := mockContentMapper(t)
-	mapper.On("MapNativeContent", mock.Anything, contentUUID, mock.Anything).Return(ioutil.NopCloser(bytes.NewReader(mappedContent)), nil)
+	mapper.On("MapNativeContent", mock.Anything, contentUUID, mock.Anything, "application/json").Return(ioutil.NopCloser(bytes.NewReader(mappedContent)), nil)
 
 	rw := NewDraftContentRWService(rwServer.URL, mapper)
 
@@ -91,7 +91,7 @@ func TestReadContentMapperError(t *testing.T) {
 	defer rwServer.Close()
 
 	mapper := mockContentMapper(t)
-	mapper.On("MapNativeContent", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil, errors.New("test mapper error"))
+	mapper.On("MapNativeContent", mock.Anything, mock.AnythingOfType("string"), mock.Anything, "application/json").Return(nil, errors.New("test mapper error"))
 
 	rw := NewDraftContentRWService(rwServer.URL, mapper)
 
@@ -163,6 +163,7 @@ func mockReadFromGenericRW(t *testing.T, status int, contentUUID string, systemI
 		assert.Equal(t, testTID, r.Header.Get(tidutils.TransactionIDHeader), tidutils.TransactionIDHeader)
 
 		w.Header().Add(originSystemIdHeader, systemID)
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
 		w.Write(body)
 	}))
@@ -188,8 +189,8 @@ func mockContentMapper(t *testing.T) *mockMapper {
 	return &mockMapper{}
 }
 
-func (m *mockMapper) MapNativeContent(ctx context.Context, contentUUID string, nativeBody io.Reader) (io.ReadCloser, error) {
-	args := m.Called(ctx, contentUUID, nativeBody)
+func (m *mockMapper) MapNativeContent(ctx context.Context, contentUUID string, nativeBody io.Reader, contentType string) (io.ReadCloser, error) {
+	args := m.Called(ctx, contentUUID, nativeBody, contentType)
 	var body io.ReadCloser
 	o := args.Get(0)
 	if o != nil {
