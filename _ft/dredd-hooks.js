@@ -3,7 +3,7 @@ var http = require('http');
 var fs = require('fs');
 
 hooks.beforeAll(function(t, done) {
-   var contents = fs.readFileSync('./_ft/fixtures.yml', 'utf8');
+   var contents = fs.readFileSync('./_ft/ersatz-fixtures.yml', 'utf8');
 
    var options = {
       host: 'localhost',
