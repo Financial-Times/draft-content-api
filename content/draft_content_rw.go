@@ -3,6 +3,7 @@ package content
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,7 +19,7 @@ const (
 )
 
 var (
-	ErrDraftNotFound            = errors.New("draft content not found in PAC")
+	ErrDraftNotFound = errors.New("draft content not found in PAC")
 
 	allowedOriginSystemIdValues = map[string]struct{}{
 		"methode-web-pub": {},
@@ -54,9 +55,15 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 	var mappedContent io.ReadCloser
 	switch resp.StatusCode {
 	case http.StatusOK:
-		mappedContent, err = rw.mapper.MapNativeContent(ctx, contentUUID, resp.Body, resp.Header.Get("Content-Type"))
-		if err != nil {
-			readLog.WithError(err).Warn("Mapper error")
+		var nativeContent io.Reader
+		nativeContent, err = rw.constructNativeDocumentForMapper(ctx, resp.Body, resp.Header.Get("Last-Modified-RFC3339"), resp.Header.Get("Write-Request-Id"))
+		if err == nil {
+			mappedContent, err = rw.mapper.MapNativeContent(ctx, contentUUID, nativeContent, resp.Header.Get("Content-Type"))
+			if err != nil {
+				readLog.WithError(err).Warn("Mapper error")
+			}
+		} else {
+			readLog.WithError(err).Warn("Error constructing mapper input")
 		}
 	case http.StatusNotFound:
 		err = ErrDraftNotFound
@@ -71,7 +78,7 @@ func (rw *draftContentRW) readNativeContent(ctx context.Context, contentUUID str
 	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
 	readLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
 
-	req, err := newHttpRequest(ctx,"GET", fmt.Sprintf(rwURLPattern, rw.endpoint, contentUUID), nil)
+	req, err := newHttpRequest(ctx, "GET", fmt.Sprintf(rwURLPattern, rw.endpoint, contentUUID), nil)
 	if err != nil {
 		readLog.WithError(err).Error("Error in creating the HTTP read request from content RW")
 		return nil, err
@@ -80,12 +87,35 @@ func (rw *draftContentRW) readNativeContent(ctx context.Context, contentUUID str
 	return rw.httpClient.Do(req)
 }
 
+func (rw *draftContentRW) constructNativeDocumentForMapper(ctx context.Context, rawNativeBody io.Reader, lastModified string, writeRef string) (io.Reader, error) {
+	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
+	readLog := log.WithField(tidutils.TransactionIDKey, tid)
+
+	rawNativeDoc := make(map[string]interface{})
+	err := json.NewDecoder(rawNativeBody).Decode(&rawNativeDoc)
+	if err != nil {
+		readLog.WithError(err).Error("unable to unmarshal native content")
+		return nil, err
+	}
+
+	rawNativeDoc["lastModified"] = lastModified
+	rawNativeDoc["draftReference"] = writeRef
+
+	nativeDoc, err := json.Marshal(&rawNativeDoc)
+	if err != nil {
+		readLog.WithError(err).Error("unable to marshal native content")
+		return nil, err
+	}
+
+	return bytes.NewReader(nativeDoc), nil
+}
+
 func (rw *draftContentRW) Write(ctx context.Context, contentUUID string, content *string, headers map[string]string) error {
 	tid := headers[tidutils.TransactionIDHeader]
 
 	writeLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
 
-	req, err := newHttpRequest(ctx,"PUT", fmt.Sprintf(rwURLPattern, rw.endpoint, contentUUID), bytes.NewBuffer([]byte(*content)))
+	req, err := newHttpRequest(ctx, "PUT", fmt.Sprintf(rwURLPattern, rw.endpoint, contentUUID), bytes.NewBuffer([]byte(*content)))
 	if err != nil {
 		writeLog.WithError(err).Error("Error in creating the HTTP write request to content RW")
 		return err

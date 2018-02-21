@@ -3,6 +3,7 @@ package content
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -19,7 +20,15 @@ import (
 
 type mockMapper struct {
 	mock.Mock
+	t *testing.T
+	expectedDraftRef string
+	expectedLastModified string
 }
+
+const (
+	testDraftRef = "tid_draft"
+	testLastModified = "2018-02-21T14:25:00Z"
+)
 
 func TestReadContent(t *testing.T) {
 	contentUUID := uuid.NewV4().String()
@@ -28,10 +37,10 @@ func TestReadContent(t *testing.T) {
 	testSystemId := "foo-bar-baz"
 	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
 
-	rwServer := mockReadFromGenericRW(t, http.StatusOK, contentUUID, testSystemId, nativeContent)
+	rwServer := mockReadFromGenericRW(t, http.StatusOK, contentUUID, testSystemId, nativeContent, testLastModified, testDraftRef)
 	defer rwServer.Close()
 
-	mapper := mockContentMapper(t)
+	mapper := mockContentMapper(t, testLastModified, testDraftRef)
 	mapper.On("MapNativeContent", mock.Anything, contentUUID, mock.Anything, "application/json").Return(ioutil.NopCloser(bytes.NewReader(mappedContent)), nil)
 
 	rw := NewDraftContentRWService(rwServer.URL, mapper)
@@ -50,10 +59,10 @@ func TestReadContentNotFound(t *testing.T) {
 	testSystemId := "foo-bar-baz"
 	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
 
-	rwServer := mockReadFromGenericRW(t, http.StatusNotFound, contentUUID, testSystemId, []byte("{\"message\":\"not found\"}"))
+	rwServer := mockReadFromGenericRW(t, http.StatusNotFound, contentUUID, testSystemId, []byte("{\"message\":\"not found\"}"), "", "")
 	defer rwServer.Close()
 
-	mapper := mockContentMapper(t)
+	mapper := mockContentMapper(t, "", "")
 
 	rw := NewDraftContentRWService(rwServer.URL, mapper)
 
@@ -68,10 +77,10 @@ func TestReadContentError(t *testing.T) {
 	testSystemId := "foo-bar-baz"
 	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
 
-	rwServer := mockReadFromGenericRW(t, http.StatusServiceUnavailable, contentUUID, testSystemId, []byte("{\"message\":\"service unavailable\"}"))
+	rwServer := mockReadFromGenericRW(t, http.StatusServiceUnavailable, contentUUID, testSystemId, []byte("{\"message\":\"service unavailable\"}"), "", "")
 	defer rwServer.Close()
 
-	mapper := mockContentMapper(t)
+	mapper := mockContentMapper(t, "", "")
 
 	rw := NewDraftContentRWService(rwServer.URL, mapper)
 
@@ -87,10 +96,10 @@ func TestReadContentMapperError(t *testing.T) {
 	testSystemId := "foo-bar-baz"
 	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
 
-	rwServer := mockReadFromGenericRW(t, http.StatusOK, contentUUID, testSystemId, nativeContent)
+	rwServer := mockReadFromGenericRW(t, http.StatusOK, contentUUID, testSystemId, nativeContent, testLastModified, testDraftRef)
 	defer rwServer.Close()
 
-	mapper := mockContentMapper(t)
+	mapper := mockContentMapper(t, testLastModified, testDraftRef)
 	mapper.On("MapNativeContent", mock.Anything, mock.AnythingOfType("string"), mock.Anything, "application/json").Return(nil, errors.New("test mapper error"))
 
 	rw := NewDraftContentRWService(rwServer.URL, mapper)
@@ -156,7 +165,7 @@ func TestWriteContentWriterReturnsError(t *testing.T) {
 	assert.Contains(t, err.Error(), "content RW returned an unexpected HTTP status code in write operation", "error message")
 }
 
-func mockReadFromGenericRW(t *testing.T, status int, contentUUID string, systemID string, body []byte) *httptest.Server {
+func mockReadFromGenericRW(t *testing.T, status int, contentUUID string, systemID string, body []byte, lastModified string, writeRef string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method, "HTTP method")
 		assert.Equal(t, fmt.Sprintf("/drafts/content/%s", contentUUID), r.URL.Path)
@@ -164,6 +173,8 @@ func mockReadFromGenericRW(t *testing.T, status int, contentUUID string, systemI
 
 		w.Header().Add(originSystemIdHeader, systemID)
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Write-Request-Id", writeRef)
+		w.Header().Set("Last-Modified-RFC3339", lastModified)
 		w.WriteHeader(status)
 		w.Write(body)
 	}))
@@ -185,17 +196,27 @@ func mockWriteToGenericRW(t *testing.T, status int, contentUUID string, systemID
 	}))
 }
 
-func mockContentMapper(t *testing.T) *mockMapper {
-	return &mockMapper{}
+func mockContentMapper(t *testing.T, lastModified string, draftRef string) *mockMapper {
+	return &mockMapper{mock.Mock{}, t, draftRef, lastModified}
 }
 
 func (m *mockMapper) MapNativeContent(ctx context.Context, contentUUID string, nativeBody io.Reader, contentType string) (io.ReadCloser, error) {
 	args := m.Called(ctx, contentUUID, nativeBody, contentType)
+	actualBody := make(map[string]interface{})
+	json.NewDecoder(nativeBody).Decode(&actualBody)
+	if len(m.expectedDraftRef) > 0 {
+		assert.Equal(m.t, m.expectedDraftRef, actualBody["draftReference"], "draftReference")
+	}
+	if len(m.expectedLastModified) > 0 {
+		assert.Equal(m.t, m.expectedLastModified, actualBody["lastModified"], "lastModified")
+	}
+
 	var body io.ReadCloser
 	o := args.Get(0)
 	if o != nil {
 		body = o.(io.ReadCloser)
 	}
+
 	return body, args.Error(1)
 }
 
