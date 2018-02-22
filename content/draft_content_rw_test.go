@@ -110,6 +110,26 @@ func TestReadContentMapperError(t *testing.T) {
 	mapper.AssertExpectations(t)
 }
 
+func TestReadContentMapperUnprocessableEntityError(t *testing.T) {
+	contentUUID := uuid.NewV4().String()
+	nativeContent := []byte("{\"foo\":\"bar\"}")
+	testSystemId := "foo-bar-baz"
+	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
+
+	rwServer := mockReadFromGenericRW(t, http.StatusOK, contentUUID, testSystemId, nativeContent, testLastModified, testDraftRef)
+	defer rwServer.Close()
+
+	mapper := mockContentMapper(t, testLastModified, testDraftRef)
+	mapper.On("MapNativeContent", mock.Anything, mock.AnythingOfType("string"), mock.Anything, "application/json").Return(nil, MapperError{http.StatusUnprocessableEntity, "test mapper error"})
+
+	rw := NewDraftContentRWService(rwServer.URL, mapper)
+
+	body, err := rw.Read(ctx, contentUUID)
+	assert.EqualError(t, err, ErrDraftNotMappable.Error())
+	assert.Nil(t, body, "mapped content")
+	mapper.AssertExpectations(t)
+}
+
 func TestWriteContent(t *testing.T) {
 	contentUUID := uuid.NewV4().String()
 	content := "{\"foo\":\"bar\"}"

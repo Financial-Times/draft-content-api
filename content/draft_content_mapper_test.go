@@ -43,6 +43,21 @@ func TestMapperError(t *testing.T) {
 	assert.Nil(t, body)
 }
 
+func TestMapperClientError(t *testing.T) {
+	contentUUID := uuid.NewV4().String()
+	nativeBody := "{\"foo\":\"bar\"}"
+	server := mockMapperHttpServer(t, http.StatusUnprocessableEntity, nativeBody, "")
+
+	m := NewDraftContentMapperService(server.URL)
+
+	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)),"application/json")
+
+	assert.Error(t, err)
+	assert.Nil(t, body)
+	assert.IsType(t, MapperError{}, err)
+	assert.Equal(t, http.StatusUnprocessableEntity, err.(MapperError).MapperStatusCode())
+}
+
 func TestMapperBadContent(t *testing.T) {
 	contentUUID := uuid.NewV4().String()
 	nativeBody := "{\"foo\":\"bar\"}"

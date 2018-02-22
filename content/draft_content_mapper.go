@@ -16,6 +16,19 @@ type DraftContentMapper interface {
 	Endpoint() string
 }
 
+type MapperError struct {
+	httpStatus int
+	msg string
+}
+
+func (e MapperError) Error() string {
+	return e.msg
+}
+
+func (e MapperError) MapperStatusCode() int {
+	return e.httpStatus
+}
+
 type draftContentMapper struct {
 	pacExternalService
 }
@@ -36,9 +49,14 @@ func (mapper *draftContentMapper) MapNativeContent(ctx context.Context, contentU
 	req.Header.Set("Content-Type", contentType)
 
 	resp, err := mapper.httpClient.Do(req)
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("mapper returned an unexpected HTTP status code in write operation: %v", resp.StatusCode)
+	if err != nil {
+		return nil, err
 	}
 
-	return resp.Body, err
+	if resp.StatusCode == http.StatusOK {
+		return resp.Body, err
+	}
+
+	defer resp.Body.Close()
+	return nil, MapperError{resp.StatusCode, fmt.Sprintf("mapper returned an unexpected HTTP status code in write operation: %v", resp.StatusCode)}
 }

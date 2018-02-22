@@ -20,6 +20,7 @@ const (
 
 var (
 	ErrDraftNotFound = errors.New("draft content not found in PAC")
+	ErrDraftNotMappable = errors.New("draft content is invalid for mapping")
 
 	allowedOriginSystemIdValues = map[string]struct{}{
 		"methode-web-pub": {},
@@ -61,6 +62,17 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 			mappedContent, err = rw.mapper.MapNativeContent(ctx, contentUUID, nativeContent, resp.Header.Get("Content-Type"))
 			if err != nil {
 				readLog.WithError(err).Warn("Mapper error")
+				switch err.(type) {
+				case MapperError:
+					switch err.(MapperError).MapperStatusCode() {
+					case http.StatusNotFound:
+						fallthrough
+
+					case http.StatusUnprocessableEntity:
+						err = ErrDraftNotMappable
+
+					}
+				}
 			}
 		} else {
 			readLog.WithError(err).Warn("Error constructing mapper input")

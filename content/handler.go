@@ -28,10 +28,11 @@ func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 	tID := tidutils.GetTransactionIDFromRequest(r)
 	ctx := tidutils.TransactionAwareContext(context.Background(), tID)
 
-	var status = http.StatusOK
+	var status = http.StatusInternalServerError
 	content, err := h.contentRW.Read(ctx, uuid)
 	if err == nil {
 		defer content.Close()
+		status = http.StatusOK
 	} else {
 		if err == ErrDraftNotFound {
 			readLog := log.WithField(tidutils.TransactionIDKey, tID).WithField("uuid", uuid)
@@ -39,7 +40,7 @@ func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 			uppResp, err := h.uppContentAPI.Get(ctx, uuid)
 			if err != nil {
 				readLog.WithError(err).Error("Error in calling Content API")
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				writeMessage(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			defer uppResp.Body.Close()
@@ -47,10 +48,13 @@ func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 				status = uppResp.StatusCode
 				content = uppResp.Body
 			}
+		} else if err == ErrDraftNotMappable {
+			status = http.StatusUnprocessableEntity
 		}
 
 		if content == nil {
-			writeMessage(w, "Service unavailable", http.StatusServiceUnavailable)
+			msg := errorMessageForRead(status)
+			writeMessage(w, msg, status)
 			return
 		}
 	}
@@ -115,6 +119,18 @@ func validateOrigin(id string) (string, error) {
 	}
 
 	return id, err
+}
+
+func errorMessageForRead(status int) string {
+	switch status {
+	case http.StatusNotFound:
+		return "Draft not found"
+
+	case http.StatusUnprocessableEntity:
+		return "Draft cannot be mapped into UPP format"
+	}
+
+	return "Error reading draft content"
 }
 
 func writeMessage(w http.ResponseWriter, errMsg string, status int) {

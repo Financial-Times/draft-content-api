@@ -96,9 +96,9 @@ func TestReadNoBackOffForOtherErrors(t *testing.T) {
 	resp := w.Result()
 	body, err := ioutil.ReadAll(resp.Body)
 
-	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.NoError(t, err)
-	assert.Equal(t, "{\"message\": \"Service unavailable\"}", string(body))
+	assert.Equal(t, "{\"message\": \"Error reading draft content\"}", string(body))
 	rw.AssertExpectations(t)
 }
 
@@ -149,9 +149,9 @@ func TestReadContentAPI504(t *testing.T) {
 	resp := w.Result()
 	body, err := ioutil.ReadAll(resp.Body)
 
-	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.NoError(t, err)
-	assert.Equal(t, "{\"message\": \"Service unavailable\"}", string(body))
+	assert.Equal(t, "{\"message\": \"Error reading draft content\"}", string(body))
 	rw.AssertExpectations(t)
 }
 
@@ -173,7 +173,7 @@ func TestReadInvalidURL(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.NoError(t, err)
-	assert.Equal(t, "parse :: missing protocol scheme\n", string(body))
+	assert.Contains(t, string(body), "parse :: missing protocol scheme")
 	rw.AssertExpectations(t)
 }
 
