@@ -27,21 +27,41 @@ func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 	uuid := vestigo.Param(r, "uuid")
 	tID := tidutils.GetTransactionIDFromRequest(r)
 	ctx := tidutils.TransactionAwareContext(context.Background(), tID)
-	resp, err := h.uppContentAPI.Get(ctx, uuid)
-	if err != nil {
-		log.WithError(err).WithField(tidutils.TransactionIDKey, tID).WithField("uuid", uuid).Error("Error in calling Content API")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	var status = http.StatusInternalServerError
+	content, err := h.contentRW.Read(ctx, uuid)
+	if err == nil {
+		defer content.Close()
+		status = http.StatusOK
+	} else {
+		if err == ErrDraftNotFound {
+			readLog := log.WithField(tidutils.TransactionIDKey, tID).WithField("uuid", uuid)
+			readLog.Warn("Draft not found in PAC, trying UPP")
+			uppResp, err := h.uppContentAPI.Get(ctx, uuid)
+			if err != nil {
+				readLog.WithError(err).Error("Error in calling Content API")
+				writeMessage(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer uppResp.Body.Close()
+			if uppResp.StatusCode == http.StatusOK || uppResp.StatusCode == http.StatusNotFound || uppResp.StatusCode == http.StatusBadRequest {
+				status = uppResp.StatusCode
+				content = uppResp.Body
+			}
+		} else if err == ErrDraftNotMappable {
+			status = http.StatusUnprocessableEntity
+		}
+
+		if content == nil {
+			msg := errorMessageForRead(status)
+			writeMessage(w, msg, status)
+			return
+		}
 	}
-	defer resp.Body.Close()
 
 	w.Header().Set("Content-Type", "application/json")
-	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusBadRequest {
-		w.WriteHeader(resp.StatusCode)
-		io.Copy(w, resp.Body)
-	} else {
-		writeMessage(w, "Service unavailable", http.StatusServiceUnavailable)
-	}
+	w.WriteHeader(status)
+	io.Copy(w, content)
 }
 
 func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
@@ -99,6 +119,18 @@ func validateOrigin(id string) (string, error) {
 	}
 
 	return id, err
+}
+
+func errorMessageForRead(status int) string {
+	switch status {
+	case http.StatusNotFound:
+		return "Draft not found"
+
+	case http.StatusUnprocessableEntity:
+		return "Draft cannot be mapped into UPP format"
+	}
+
+	return "Error reading draft content"
 }
 
 func writeMessage(w http.ResponseWriter, errMsg string, status int) {
