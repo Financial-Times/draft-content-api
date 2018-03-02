@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	ErrDraftNotFound = errors.New("draft content not found in PAC")
+	ErrDraftNotFound    = errors.New("draft content not found in PAC")
 	ErrDraftNotMappable = errors.New("draft content is invalid for mapping")
 
 	allowedOriginSystemIdValues = map[string]struct{}{

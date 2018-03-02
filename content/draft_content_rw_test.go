@@ -20,13 +20,13 @@ import (
 
 type mockMapper struct {
 	mock.Mock
-	t *testing.T
-	expectedDraftRef string
+	t                    *testing.T
+	expectedDraftRef     string
 	expectedLastModified string
 }
 
 const (
-	testDraftRef = "tid_draft"
+	testDraftRef     = "tid_draft"
 	testLastModified = "2018-02-21T14:25:00Z"
 )
 

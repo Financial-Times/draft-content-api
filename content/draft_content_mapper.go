@@ -18,7 +18,7 @@ type DraftContentMapper interface {
 
 type MapperError struct {
 	httpStatus int
-	msg string
+	msg        string
 }
 
 func (e MapperError) Error() string {

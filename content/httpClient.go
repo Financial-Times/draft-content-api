@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/Financial-Times/service-status-go/buildinfo"
+	tidutils "github.com/Financial-Times/transactionid-utils-go"
 )
 
 func newHttpRequest(ctx context.Context, method string, url string, payload io.Reader) (req *http.Request, err error) {
@@ -18,7 +18,7 @@ func newHttpRequest(ctx context.Context, method string, url string, payload io.R
 			req.Header.Set(tidutils.TransactionIDHeader, tid)
 		}
 
-		req.Header.Set("User-Agent", "PAC-draft-content-api/" + strings.Replace(buildinfo.GetBuildInfo().Version, " ", "-", -1))
+		req.Header.Set("User-Agent", "PAC-draft-content-api/"+strings.Replace(buildinfo.GetBuildInfo().Version, " ", "-", -1))
 	}
 	return
 }

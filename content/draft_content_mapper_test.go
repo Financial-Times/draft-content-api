@@ -37,7 +37,7 @@ func TestMapperError(t *testing.T) {
 
 	m := NewDraftContentMapperService(server.URL)
 
-	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)),"application/json")
+	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), "application/json")
 
 	assert.Error(t, err)
 	assert.Nil(t, body)
@@ -50,7 +50,7 @@ func TestMapperClientError(t *testing.T) {
 
 	m := NewDraftContentMapperService(server.URL)
 
-	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)),"application/json")
+	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), "application/json")
 
 	assert.Error(t, err)
 	assert.Nil(t, body)
