@@ -141,7 +141,7 @@ func (h *Handler) readContentFromUPP(ctx context.Context, w http.ResponseWriter,
 	err = json.Unmarshal(bytes, &uppContent)
 
 	if err != nil {
-		readContentUPPLog.WithError(err).Error("Failed marshalling UPP response")
+		readContentUPPLog.WithError(err).Error("Failed unmarshalling UPP response")
 		writeMessage(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
