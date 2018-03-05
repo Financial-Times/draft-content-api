@@ -31,19 +31,12 @@ func NewHandler(uppApi ContentAPI, draftContentRW DraftContentRW) *Handler {
 }
 
 func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
+
 	contentId := vestigo.Param(r, "uuid")
 	tID := tidutils.GetTransactionIDFromRequest(r)
 	ctx := tidutils.TransactionAwareContext(context.Background(), tID)
 
 	content, err := h.contentRW.Read(ctx, contentId)
-
-	if err == nil {
-		defer content.Close()
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		io.Copy(w, content)
-		return
-	}
 
 	if err == ErrDraftNotMappable {
 		writeMessage(w, errorMessageForRead(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
@@ -55,7 +48,16 @@ func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeMessage(w, errorMessageForRead(http.StatusInternalServerError), http.StatusInternalServerError)
+	if err != nil {
+		writeMessage(w, errorMessageForRead(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	defer content.Close()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	io.Copy(w, content)
 
 }
 
