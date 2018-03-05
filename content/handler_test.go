@@ -78,18 +78,22 @@ func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 	var expected map[string]interface{}
 	var actual map[string]interface{}
 
-	json.Unmarshal([]byte(fromMaMContent), expected)
-	json.Unmarshal(body, actual)
+	json.Unmarshal([]byte(fromMaMContent), &expected)
+	json.Unmarshal(body, &actual)
 
-	// both should have the same uuid, brands, body and type fields and corresponding values
+	// both should have the same uuid, brands, body and type fields
 	// since proper transformation should already been applied.
 
 	assert.Equal(t, expected["uuid"], actual["uuid"])
 	assert.Equal(t, expected["brands"], actual["brands"])
-	assert.Equal(t, expected["body"], actual["body"])
+
+	actualBody, present := actual["body"]
+
+	assert.True(t, present)
+	assert.NotEmpty(t, actualBody)
+
 	assert.Equal(t, expected["type"], actual["type"])
 
-	assert.Equal(t, expected, actual)
 	rw.AssertExpectations(t)
 }
 

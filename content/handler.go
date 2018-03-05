@@ -200,8 +200,8 @@ func writeMessage(w http.ResponseWriter, errMsg string, status int) {
 
 // Function modifies these fields/values;
 //  - id -> uuid, removing the http prefix
-//  - bodyXml -> body, keeping value intact
-//  - type value, adding http prefix
+//  - bodyXML -> body, keeping value intact
+//  - type value, removing http prefix
 //  - brands value, adding an object wrapper with id field having the same value
 func transformUPPContent(content map[string]interface{}) error {
 
@@ -219,9 +219,9 @@ func transformUPPContent(content map[string]interface{}) error {
 	}
 
 	// --- body
-	if _, present := content["body"]; present {
-		content["body"] = content["bodyXml"]
-		delete(content, "body")
+	if _, present := content["bodyXML"]; present {
+		content["body"] = content["bodyXML"]
+		delete(content, "bodyXML")
 	}
 
 	// --- type
