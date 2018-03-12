@@ -39,8 +39,8 @@ type draftContentRW struct {
 	mapper DraftContentMapper
 }
 
-func NewDraftContentRWService(endpoint string, mapper DraftContentMapper) DraftContentRW {
-	return &draftContentRW{pacExternalService{endpoint, &http.Client{}}, mapper}
+func NewDraftContentRWService(endpoint string, mapper DraftContentMapper, httpClient *http.Client) DraftContentRW {
+	return &draftContentRW{pacExternalService{endpoint, httpClient}, mapper}
 }
 
 func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.ReadCloser, error) {

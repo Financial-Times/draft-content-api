@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
@@ -24,19 +26,26 @@ const (
 type Handler struct {
 	uppContentAPI ContentAPI
 	contentRW     DraftContentRW
+	timeout       time.Duration
 }
 
-func NewHandler(uppApi ContentAPI, draftContentRW DraftContentRW) *Handler {
-	return &Handler{uppApi, draftContentRW}
+func NewHandler(uppApi ContentAPI, draftContentRW DraftContentRW, timeout time.Duration) *Handler {
+	return &Handler{uppApi, draftContentRW, timeout}
 }
 
 func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 
 	contentId := vestigo.Param(r, "uuid")
-	tID := tidutils.GetTransactionIDFromRequest(r)
-	ctx := tidutils.TransactionAwareContext(context.Background(), tID)
+
+	now := time.Now()
+	ctx, cancelCtx := context.WithTimeout(newContextFromRequest(r), now.Add(h.timeout).Sub(now))
+	defer cancelCtx()
 
 	content, err := h.contentRW.Read(ctx, contentId)
+
+	if isTimeoutError(err) {
+		writeMessage(w, errorMessageForRead(http.StatusRequestTimeout), http.StatusRequestTimeout)
+	}
 
 	if err == ErrDraftNotMappable {
 		writeMessage(w, errorMessageForRead(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
@@ -63,8 +72,12 @@ func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
 	contentId := vestigo.Param(r, "uuid")
+
 	tID := tidutils.GetTransactionIDFromRequest(r)
-	ctx := tidutils.TransactionAwareContext(context.Background(), tID)
+
+	now := time.Now()
+	ctx, cancelCtx := context.WithTimeout(newContextFromRequest(r), now.Add(h.timeout).Sub(now))
+	defer cancelCtx()
 
 	writeLog := log.WithField(tidutils.TransactionIDKey, tID).WithField("uuid", contentId)
 
@@ -97,8 +110,15 @@ func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
 	err = h.contentRW.Write(ctx, contentId, &draftContent, draftHeaders)
 	if err != nil {
 		writeLog.WithError(err).Error("Error in writing draft content")
+
+		if isTimeoutError(err) {
+			writeMessage(w, fmt.Sprintf("Error in writing draft content: %v", err.Error()), http.StatusRequestTimeout)
+			return
+		}
+
 		writeMessage(w, fmt.Sprintf("Error in writing draft content: %v", err.Error()), http.StatusInternalServerError)
 		return
+
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -112,6 +132,12 @@ func (h *Handler) readContentFromUPP(ctx context.Context, w http.ResponseWriter,
 
 	if err != nil {
 		readContentUPPLog.WithError(err).Error("Error in calling Content API")
+
+		if isTimeoutError(err) {
+			writeMessage(w, err.Error(), http.StatusRequestTimeout)
+			return
+		}
+
 		writeMessage(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -188,6 +214,11 @@ func errorMessageForRead(status int) string {
 
 	case http.StatusUnprocessableEntity:
 		return "Draft cannot be mapped into UPP format"
+
+	case http.StatusRequestTimeout:
+		fallthrough
+	case http.StatusGatewayTimeout:
+		return "Draft content request processing has timed out"
 	}
 
 	return "Error reading draft content"
@@ -265,4 +296,20 @@ func transformUPPContent(content map[string]interface{}) error {
 
 	return nil
 
+}
+
+func newContextFromRequest(request *http.Request) context.Context {
+	return tidutils.TransactionAwareContext(context.Background(), tidutils.GetTransactionIDFromRequest(request))
+}
+
+func isTimeoutError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if netError, assertion := err.(net.Error); assertion {
+		return netError.Timeout()
+	}
+
+	return false
 }

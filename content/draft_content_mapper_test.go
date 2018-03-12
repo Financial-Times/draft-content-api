@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Financial-Times/go-ft-http/fthttp"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +20,7 @@ func TestMapper(t *testing.T) {
 	mappedBody := "{\"foo\":\"baz\"}"
 	server := mockMapperHttpServer(t, http.StatusOK, nativeBody, mappedBody)
 
-	m := NewDraftContentMapperService(server.URL)
+	m := NewDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
 	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), "application/json")
 
@@ -35,7 +36,7 @@ func TestMapperError(t *testing.T) {
 	nativeBody := "{\"foo\":\"bar\"}"
 	server := mockMapperHttpServer(t, http.StatusServiceUnavailable, nativeBody, "")
 
-	m := NewDraftContentMapperService(server.URL)
+	m := NewDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
 	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), "application/json")
 
@@ -48,7 +49,7 @@ func TestMapperClientError(t *testing.T) {
 	nativeBody := "{\"foo\":\"bar\"}"
 	server := mockMapperHttpServer(t, http.StatusUnprocessableEntity, nativeBody, "")
 
-	m := NewDraftContentMapperService(server.URL)
+	m := NewDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
 	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), "application/json")
 
@@ -63,7 +64,7 @@ func TestMapperBadContent(t *testing.T) {
 	nativeBody := "{\"foo\":\"bar\"}"
 	server := mockMapperHttpServer(t, http.StatusUnprocessableEntity, nativeBody, "")
 
-	m := NewDraftContentMapperService(server.URL)
+	m := NewDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
 	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), "application/json")
 

@@ -33,8 +33,8 @@ type draftContentMapper struct {
 	pacExternalService
 }
 
-func NewDraftContentMapperService(endpoint string) DraftContentMapper {
-	return &draftContentMapper{pacExternalService{endpoint, &http.Client{}}}
+func NewDraftContentMapperService(endpoint string, httpClient *http.Client) DraftContentMapper {
+	return &draftContentMapper{pacExternalService{endpoint, httpClient}}
 }
 
 func (mapper *draftContentMapper) MapNativeContent(ctx context.Context, contentUUID string, nativeBody io.Reader, contentType string) (io.ReadCloser, error) {

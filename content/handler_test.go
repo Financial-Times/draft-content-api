@@ -11,7 +11,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/Financial-Times/go-ft-http/fthttp"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
 	"github.com/satori/go.uuid"
@@ -21,6 +23,7 @@ import (
 
 const testAPIKey = "testAPIKey"
 const testTID = "test_tid"
+const testTimeout = 8 * time.Second
 
 type mockDraftContentRW struct {
 	mock.Mock
@@ -32,7 +35,7 @@ func TestHappyRead(t *testing.T) {
 	rw := &mockDraftContentRW{}
 	rw.On("Read", mock.Anything, contentUUID).Return(ioutil.NopCloser(strings.NewReader(fromMaMContent)), nil)
 
-	h := NewHandler(nil, rw)
+	h := NewHandler(nil, rw, testTimeout)
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -58,9 +61,9 @@ func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 
 	cAPIServerMock := newContentAPIServerMock(t, http.StatusOK, fromUppContent)
 	defer cAPIServerMock.Close()
-	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
-	h := NewHandler(cAPI, rw)
+	h := NewHandler(cAPI, rw, testTimeout)
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -103,7 +106,7 @@ func TestReadNoBackOffForOtherErrors(t *testing.T) {
 	rw := &mockDraftContentRW{}
 	rw.On("Read", mock.Anything, contentUUID).Return(nil, errors.New("this should never happen"))
 
-	h := NewHandler(nil, rw)
+	h := NewHandler(nil, rw, testTimeout)
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -128,8 +131,8 @@ func TestReadNotFoundAnywhere(t *testing.T) {
 	rw := &mockDraftContentRW{}
 	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
 
-	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
-	h := NewHandler(cAPI, rw)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	h := NewHandler(cAPI, rw, testTimeout)
 
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
@@ -155,8 +158,8 @@ func TestReadContentAPI504(t *testing.T) {
 	rw := &mockDraftContentRW{}
 	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
 
-	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
-	h := NewHandler(cAPI, rw)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	h := NewHandler(cAPI, rw, testTimeout)
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -170,15 +173,15 @@ func TestReadContentAPI504(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.NoError(t, err)
-	assert.Equal(t, "{\"message\": \"Error reading draft content\"}", string(body))
+	assert.Equal(t, "{\"message\": \"Draft content request processing has timed out\"}", string(body))
 	rw.AssertExpectations(t)
 }
 
 func TestReadInvalidURL(t *testing.T) {
 	rw := &mockDraftContentRW{}
 	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
-	cAPI := NewContentAPI(":#", testAPIKey)
-	h := NewHandler(cAPI, rw)
+	cAPI := NewContentAPI(":#", testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	h := NewHandler(cAPI, rw, testTimeout)
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -202,8 +205,8 @@ func TestReadConnectionError(t *testing.T) {
 	cAPIServerMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	cAPIServerMock.Close()
 
-	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey)
-	h := NewHandler(cAPI, rw)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	h := NewHandler(cAPI, rw, testTimeout)
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -232,7 +235,7 @@ func TestWriteNativeContent(t *testing.T) {
 	/* mock.AnythingOfType(...) doesn't work for interfaces: https://github.com/stretchr/testify/issues/519 */
 	rw.On("Write", mock.Anything, contentUUID, &draftBody, headers).Return(nil)
 
-	h := NewHandler(nil, &rw)
+	h := NewHandler(nil, &rw, testTimeout)
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -253,7 +256,7 @@ func TestWriteNativeContent(t *testing.T) {
 func TestWriteNativeContentInvalidUUID(t *testing.T) {
 	draftBody := "{\"foo\":\"bar\"}"
 
-	h := NewHandler(nil, nil)
+	h := NewHandler(nil, nil, testTimeout)
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -275,7 +278,7 @@ func TestWriteNativeContentWithoutOriginSystemId(t *testing.T) {
 	contentUUID := uuid.NewV4().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
-	h := NewHandler(nil, nil /*&rw*/)
+	h := NewHandler(nil, nil /*&rw*/, testTimeout)
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -296,7 +299,7 @@ func TestWriteNativeContentInvalidOriginSystemId(t *testing.T) {
 	contentUUID := uuid.NewV4().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
-	h := NewHandler(nil, nil)
+	h := NewHandler(nil, nil, testTimeout)
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -321,7 +324,7 @@ func TestWriteNativeContentWriteError(t *testing.T) {
 	rw := mockDraftContentRW{}
 	rw.On("Write", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test error from writer"))
 
-	h := NewHandler(nil, &rw)
+	h := NewHandler(nil, &rw, testTimeout)
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
