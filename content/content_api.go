@@ -52,7 +52,7 @@ func (api *contentAPI) Get(ctx context.Context, contentUUID string) (*http.Respo
 	}
 
 	getContentLog.Info("Calling Content API")
-	return api.httpClient.Do(apiReq)
+	return api.httpClient.Do(apiReq.WithContext(ctx))
 }
 
 func (api *contentAPI) GTG() error {

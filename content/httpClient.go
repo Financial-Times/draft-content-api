@@ -19,6 +19,7 @@ func newHttpRequest(ctx context.Context, method string, url string, payload io.R
 		}
 
 		req.Header.Set("User-Agent", "PAC-draft-content-api/"+strings.Replace(buildinfo.GetBuildInfo().Version, " ", "-", -1))
+		req = req.WithContext(ctx)
 	}
 	return
 }

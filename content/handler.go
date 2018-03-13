@@ -37,14 +37,14 @@ func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 
 	contentId := vestigo.Param(r, "uuid")
 
-	now := time.Now()
-	ctx, cancelCtx := context.WithTimeout(newContextFromRequest(r), now.Add(h.timeout).Sub(now))
+	ctx, cancelCtx := context.WithTimeout(newContextFromRequest(r), h.timeout)
 	defer cancelCtx()
 
 	content, err := h.contentRW.Read(ctx, contentId)
 
 	if isTimeoutError(err) {
-		writeMessage(w, errorMessageForRead(http.StatusRequestTimeout), http.StatusRequestTimeout)
+		writeMessage(w, errorMessageForRead(http.StatusGatewayTimeout), http.StatusGatewayTimeout)
+		return
 	}
 
 	if err == ErrDraftNotMappable {
@@ -75,10 +75,6 @@ func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
 
 	tID := tidutils.GetTransactionIDFromRequest(r)
 
-	now := time.Now()
-	ctx, cancelCtx := context.WithTimeout(newContextFromRequest(r), now.Add(h.timeout).Sub(now))
-	defer cancelCtx()
-
 	writeLog := log.WithField(tidutils.TransactionIDKey, tID).WithField("uuid", contentId)
 
 	if err := validateUUID(contentId); err != nil {
@@ -100,6 +96,10 @@ func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
 		writeMessage(w, fmt.Sprintf("Unable to read draft content body: %v", err.Error()), http.StatusBadRequest)
 		return
 	}
+
+	ctx, cancelCtx := context.WithTimeout(newContextFromRequest(r), h.timeout)
+	defer cancelCtx()
+
 	draftContent := string(raw)
 	draftHeaders := map[string]string{
 		tidutils.TransactionIDHeader: tID,
@@ -112,7 +112,7 @@ func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
 		writeLog.WithError(err).Error("Error in writing draft content")
 
 		if isTimeoutError(err) {
-			writeMessage(w, fmt.Sprintf("Error in writing draft content: %v", err.Error()), http.StatusRequestTimeout)
+			writeMessage(w, fmt.Sprintf("Error in writing draft content: %v", err.Error()), http.StatusGatewayTimeout)
 			return
 		}
 
@@ -134,7 +134,7 @@ func (h *Handler) readContentFromUPP(ctx context.Context, w http.ResponseWriter,
 		readContentUPPLog.WithError(err).Error("Error in calling Content API")
 
 		if isTimeoutError(err) {
-			writeMessage(w, err.Error(), http.StatusRequestTimeout)
+			writeMessage(w, err.Error(), http.StatusGatewayTimeout)
 			return
 		}
 
@@ -215,8 +215,6 @@ func errorMessageForRead(status int) string {
 	case http.StatusUnprocessableEntity:
 		return "Draft cannot be mapped into UPP format"
 
-	case http.StatusRequestTimeout:
-		fallthrough
 	case http.StatusGatewayTimeout:
 		return "Draft content request processing has timed out"
 	}
