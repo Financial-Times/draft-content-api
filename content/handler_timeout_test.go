@@ -10,24 +10,27 @@ import (
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestReadTimeoutFromDraftContent(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
 	contentRWTestServer := newDraftContentRWTestServer(300*time.Millisecond, http.StatusOK)
-	mapperTestServer := newMethodeArticleMapperTestServer(10*time.Millisecond, http.StatusOK)
-	contentAPITestServer := newUppContentAPITestServer(10*time.Millisecond, http.StatusOK)
+	mapperTestServer := newMethodeArticleMapperTestServer(0, http.StatusOK)
+	contentAPITestServer := newUppContentAPITestServer(0, http.StatusOK)
 
-	defer contentRWTestServer.Close()
-	defer mapperTestServer.Close()
-	defer contentAPITestServer.Close()
+	contentRWTestServer.On("EndpointCalled")
+
+	defer contentRWTestServer.server.Close()
+	defer mapperTestServer.server.Close()
+	defer contentAPITestServer.server.Close()
 
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
-	mapperService := NewDraftContentMapperService(mapperTestServer.URL, client)
-	contentRWService := NewDraftContentRWService(contentRWTestServer.URL, mapperService, client)
-	uppApi := NewContentAPI(contentAPITestServer.URL, "awesomely-unique-key", client)
+	mapperService := NewDraftContentMapperService(mapperTestServer.server.URL, client)
+	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, mapperService, client)
+	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
 	handler := NewHandler(uppApi, contentRWService, 150*time.Millisecond)
 
@@ -43,24 +46,32 @@ func TestReadTimeoutFromDraftContent(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
+
+	assert.True(t, mapperTestServer.AssertNotCalled(t, "EndpointCalled"))
+	assert.True(t, contentAPITestServer.AssertNotCalled(t, "EndpointCalled"))
+
+	contentRWTestServer.AssertExpectations(t)
 }
 
 func TestReadTimeoutFromUPPContent(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
 	contentRWTestServer := newDraftContentRWTestServer(10*time.Millisecond, http.StatusNotFound)
-	mapperTestServer := newMethodeArticleMapperTestServer(10*time.Millisecond, http.StatusOK)
+	mapperTestServer := newMethodeArticleMapperTestServer(0*time.Millisecond, http.StatusOK)
 	contentAPITestServer := newUppContentAPITestServer(300*time.Millisecond, http.StatusOK)
 
-	defer contentRWTestServer.Close()
-	defer mapperTestServer.Close()
-	defer contentAPITestServer.Close()
+	contentRWTestServer.On("EndpointCalled")
+	contentAPITestServer.On("EndpointCalled")
+
+	defer contentRWTestServer.server.Close()
+	defer mapperTestServer.server.Close()
+	defer contentAPITestServer.server.Close()
 
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
-	mapperService := NewDraftContentMapperService(mapperTestServer.URL, client)
-	contentRWService := NewDraftContentRWService(contentRWTestServer.URL, mapperService, client)
-	uppApi := NewContentAPI(contentAPITestServer.URL, "awesomely-unique-key", client)
+	mapperService := NewDraftContentMapperService(mapperTestServer.server.URL, client)
+	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, mapperService, client)
+	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
 	handler := NewHandler(uppApi, contentRWService, 150*time.Millisecond)
 
@@ -76,23 +87,30 @@ func TestReadTimeoutFromUPPContent(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
+	assert.True(t, mapperTestServer.AssertNotCalled(t, "EndpointCalled"))
+
+	contentRWTestServer.AssertExpectations(t)
+	contentAPITestServer.AssertExpectations(t)
 }
 func TestReadTimeoutFromMethodeArticleMapper(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
 	contentRWTestServer := newDraftContentRWTestServer(10*time.Millisecond, http.StatusOK)
 	mapperTestServer := newMethodeArticleMapperTestServer(300*time.Millisecond, http.StatusOK)
-	contentAPITestServer := newUppContentAPITestServer(10*time.Millisecond, http.StatusOK)
+	contentAPITestServer := newUppContentAPITestServer(0, http.StatusOK)
 
-	defer contentRWTestServer.Close()
-	defer mapperTestServer.Close()
-	defer contentAPITestServer.Close()
+	contentRWTestServer.On("EndpointCalled")
+	mapperTestServer.On("EndpointCalled")
+
+	defer contentRWTestServer.server.Close()
+	defer mapperTestServer.server.Close()
+	defer contentAPITestServer.server.Close()
 
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
-	mapperService := NewDraftContentMapperService(mapperTestServer.URL, client)
-	contentRWService := NewDraftContentRWService(contentRWTestServer.URL, mapperService, client)
-	uppApi := NewContentAPI(contentAPITestServer.URL, "awesomely-unique-key", client)
+	mapperService := NewDraftContentMapperService(mapperTestServer.server.URL, client)
+	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, mapperService, client)
+	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
 	handler := NewHandler(uppApi, contentRWService, 150*time.Millisecond)
 
@@ -108,6 +126,11 @@ func TestReadTimeoutFromMethodeArticleMapper(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
+	assert.True(t, contentAPITestServer.AssertNotCalled(t, "EndpointCalled"))
+
+	contentRWTestServer.AssertExpectations(t)
+	mapperTestServer.AssertExpectations(t)
+
 }
 func TestNativeWriteTimeout(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
@@ -116,15 +139,17 @@ func TestNativeWriteTimeout(t *testing.T) {
 	mapperTestServer := newMethodeArticleMapperTestServer(0*time.Millisecond, http.StatusOK)
 	contentAPITestServer := newUppContentAPITestServer(0*time.Millisecond, http.StatusOK)
 
-	defer contentRWTestServer.Close()
-	defer mapperTestServer.Close()
-	defer contentAPITestServer.Close()
+	contentRWTestServer.On("EndpointCalled")
+
+	defer contentRWTestServer.server.Close()
+	defer mapperTestServer.server.Close()
+	defer contentAPITestServer.server.Close()
 
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
-	mapperService := NewDraftContentMapperService(mapperTestServer.URL, client)
-	contentRWService := NewDraftContentRWService(contentRWTestServer.URL, mapperService, client)
-	uppApi := NewContentAPI(contentAPITestServer.URL, "awesomely-unique-key", client)
+	mapperService := NewDraftContentMapperService(mapperTestServer.server.URL, client)
+	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, mapperService, client)
+	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
 	handler := NewHandler(uppApi, contentRWService, 150*time.Millisecond)
 
@@ -144,13 +169,16 @@ func TestNativeWriteTimeout(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
+	contentRWTestServer.AssertExpectations(t)
 }
 
-func newDraftContentRWTestServer(inducedDelay time.Duration, responseStatus int) *httptest.Server {
+func newDraftContentRWTestServer(inducedDelay time.Duration, responseStatus int) *mockServer {
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	m := &mockServer{}
+	m.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		if inducedDelay > 0 {
+			m.EndpointCalled()
 			time.Sleep(inducedDelay)
 		}
 
@@ -167,13 +195,15 @@ func newDraftContentRWTestServer(inducedDelay time.Duration, responseStatus int)
 
 	}))
 
-	return server
+	return m
 }
 
-func newMethodeArticleMapperTestServer(inducedDelay time.Duration, responseStatus int) *httptest.Server {
+func newMethodeArticleMapperTestServer(inducedDelay time.Duration, responseStatus int) *mockServer {
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	m := &mockServer{}
+	m.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if inducedDelay > 0 {
+			m.EndpointCalled()
 			time.Sleep(inducedDelay)
 		}
 
@@ -182,13 +212,14 @@ func newMethodeArticleMapperTestServer(inducedDelay time.Duration, responseStatu
 		w.Write([]byte(fromMaMContent))
 	}))
 
-	return server
+	return m
 }
 
-func newUppContentAPITestServer(inducedDelay time.Duration, responseStatus int) *httptest.Server {
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func newUppContentAPITestServer(inducedDelay time.Duration, responseStatus int) *mockServer {
+	m := &mockServer{}
+	m.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if inducedDelay > 0 {
+			m.EndpointCalled()
 			time.Sleep(inducedDelay)
 		}
 		w.WriteHeader(responseStatus)
@@ -196,5 +227,14 @@ func newUppContentAPITestServer(inducedDelay time.Duration, responseStatus int) 
 		w.Write([]byte(fromUppContent))
 	}))
 
-	return server
+	return m
+}
+
+type mockServer struct {
+	mock.Mock
+	server *httptest.Server
+}
+
+func (m *mockServer) EndpointCalled() {
+	m.Called()
 }

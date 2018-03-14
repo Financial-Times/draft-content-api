@@ -18,7 +18,6 @@ func TestNewHttpRequest(t *testing.T) {
 	assert.Equal(t, http.MethodGet, req.Method, "HTTP method")
 	assert.Equal(t, url, req.URL.String(), "request URL")
 	assert.Equal(t, testTID, req.Header.Get(tidutils.TransactionIDHeader), tidutils.TransactionIDHeader)
-	assert.Regexp(t, `^PAC-draft-content-api/\S*\s?$`, req.Header.Get("User-Agent"), "user agent")
 }
 
 func TestNewHttpRequestNoTID(t *testing.T) {
@@ -29,7 +28,6 @@ func TestNewHttpRequestNoTID(t *testing.T) {
 	assert.Equal(t, http.MethodGet, req.Method, "HTTP method")
 	assert.Equal(t, url, req.URL.String(), "request URL")
 	assert.Equal(t, "", req.Header.Get(tidutils.TransactionIDHeader), tidutils.TransactionIDHeader)
-	assert.Regexp(t, `^PAC-draft-content-api/\S*\s?$`, req.Header.Get("User-Agent"), "user agent")
 }
 
 func TestNewHttpRequestInvalidUrl(t *testing.T) {

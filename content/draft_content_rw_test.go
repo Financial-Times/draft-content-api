@@ -207,7 +207,6 @@ func mockWriteToGenericRW(t *testing.T, status int, contentUUID string, systemID
 		assert.Equal(t, fmt.Sprintf("/drafts/content/%s", contentUUID), r.URL.Path)
 		assert.Equal(t, testTID, r.Header.Get(tidutils.TransactionIDHeader), tidutils.TransactionIDHeader)
 		assert.Equal(t, systemID, r.Header.Get(originSystemIdHeader), originSystemIdHeader)
-		assert.Regexp(t, `^PAC-draft-content-api/\S*\s?$`, r.Header.Get("User-Agent"), "user-agent")
 
 		by, err := ioutil.ReadAll(r.Body)
 		assert.NoError(t, err)

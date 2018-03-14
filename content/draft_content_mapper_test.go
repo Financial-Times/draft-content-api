@@ -79,7 +79,6 @@ func mockMapperHttpServer(t *testing.T, status int, expectedBody string, respons
 		assert.Equal(t, "suggest", r.URL.Query().Get("mode"))
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 		assert.Equal(t, testTID, r.Header.Get(tidutils.TransactionIDHeader), tidutils.TransactionIDHeader)
-		assert.Regexp(t, `^PAC-draft-content-api/\S*\s?$`, r.Header.Get("User-Agent"), "user-agent")
 
 		by, err := ioutil.ReadAll(r.Body)
 		assert.NoError(t, err)

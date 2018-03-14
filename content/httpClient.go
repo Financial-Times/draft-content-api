@@ -4,9 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"strings"
 
-	"github.com/Financial-Times/service-status-go/buildinfo"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 )
 
@@ -17,8 +15,6 @@ func newHttpRequest(ctx context.Context, method string, url string, payload io.R
 		if tiderr == nil {
 			req.Header.Set(tidutils.TransactionIDHeader, tid)
 		}
-
-		req.Header.Set("User-Agent", "PAC-draft-content-api/"+strings.Replace(buildinfo.GetBuildInfo().Version, " ", "-", -1))
 		req = req.WithContext(ctx)
 	}
 	return
