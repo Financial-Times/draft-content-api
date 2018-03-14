@@ -87,10 +87,7 @@ func TestReadTimeoutFromUPPContent(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
-	assert.True(t, mapperTestServer.AssertNotCalled(t, "EndpointCalled"))
-
-	contentRWTestServer.AssertExpectations(t)
-	contentAPITestServer.AssertExpectations(t)
+	mock.AssertExpectationsForObjects(t, contentRWTestServer, contentAPITestServer, mapperTestServer)
 }
 func TestReadTimeoutFromMethodeArticleMapper(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
@@ -126,11 +123,7 @@ func TestReadTimeoutFromMethodeArticleMapper(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
-	assert.True(t, contentAPITestServer.AssertNotCalled(t, "EndpointCalled"))
-
-	contentRWTestServer.AssertExpectations(t)
-	mapperTestServer.AssertExpectations(t)
-
+	mock.AssertExpectationsForObjects(t, contentRWTestServer, contentAPITestServer, mapperTestServer)
 }
 func TestNativeWriteTimeout(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
