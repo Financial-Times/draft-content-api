@@ -43,9 +43,9 @@ func main() {
 		EnvVar: "APP_PORT",
 	})
 
-	appTimeout := app.Int(cli.IntOpt{
+	appTimeout := app.String(cli.StringOpt{
 		Name:   "app-timeout",
-		Value:  8000,
+		Value:  "8s",
 		Desc:   "Draft Content API Response Timeout",
 		EnvVar: "APP_TIMEOUT",
 	})
@@ -92,14 +92,21 @@ func main() {
 	app.Action = func() {
 		log.Infof("System code: %s, App Name: %s, Port: %s, App Timeout: %sms", *appSystemCode, *appName, *port, *appTimeout)
 
-		httpClient := fthttp.NewClient(time.Duration(*appTimeout)*time.Millisecond, "PAC", *appSystemCode)
+		timeout, err := time.ParseDuration(*appTimeout)
+
+		if err != nil {
+			log.Errorf("App could not start, error=[%s]\n", err)
+			return
+		}
+
+		httpClient := fthttp.NewClient(timeout, "PAC", *appSystemCode)
 
 		draftContentMapperService := content.NewDraftContentMapperService(*mamEndpoint, httpClient)
 		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint, draftContentMapperService, httpClient)
 
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey, httpClient)
 
-		contentHandler := content.NewHandler(cAPI, draftContentRWService, time.Duration(*appTimeout)*time.Millisecond)
+		contentHandler := content.NewHandler(cAPI, draftContentRWService, timeout)
 		healthService := health.NewHealthService(*appSystemCode, *appName, appDescription, draftContentRWService, draftContentMapperService, cAPI)
 		serveEndpoints(*port, apiYml, contentHandler, healthService)
 	}
