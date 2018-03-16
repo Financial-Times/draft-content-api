@@ -41,6 +41,11 @@ spec:
             configMapKeyRef:
               name: global-config
               key: content-endpoint
+        - name: APP_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: timeout-config
+              key: draft-content-api-timeout
         - name: CAPI_APIKEY
           valueFrom:
             secretKeyRef:
