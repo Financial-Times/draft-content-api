@@ -37,7 +37,8 @@ paths:
           description: Returns the UPP format json document for the content UUID
           examples:
             application/json:
-              id: http://www.ft.com/thing/068da091-da3f-4196-8948-9084f6d0856a
+              uuid: 068da091-da3f-4196-8948-9084f6d0856a
+              body: Some string
         400:
           description: Invalid uuid supplied
         404:

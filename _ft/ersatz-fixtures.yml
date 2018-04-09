@@ -5,6 +5,7 @@ fixtures:
       status: 200
       body:
         id: http://www.ft.com/thing/068da091-da3f-4196-8948-9084f6d0856a
+        bodyXML: <body>should become body</body>
   /content/4f2f97ea-b8ec-11e4-b8e6-00144feab7de:
     get:
       status: 200
@@ -16,6 +17,8 @@ fixtures:
       expectations:
         headers:
           x-origin-system-id: methode-web-pub
+    get:
+      status: 404
   /__gtg:
     get:
       status: 200
