@@ -26,8 +26,8 @@ type contentAPI struct {
 	httpClient *http.Client
 }
 
-func NewContentAPI(endpoint string, apiKey string) ContentAPI {
-	return &contentAPI{endpoint, apiKey, &http.Client{}}
+func NewContentAPI(endpoint string, apiKey string, httpClient *http.Client) ContentAPI {
+	return &contentAPI{endpoint, apiKey, httpClient}
 }
 
 func (api *contentAPI) Get(ctx context.Context, contentUUID string) (*http.Response, error) {
@@ -52,7 +52,7 @@ func (api *contentAPI) Get(ctx context.Context, contentUUID string) (*http.Respo
 	}
 
 	getContentLog.Info("Calling Content API")
-	return api.httpClient.Do(apiReq)
+	return api.httpClient.Do(apiReq.WithContext(ctx))
 }
 
 func (api *contentAPI) GTG() error {

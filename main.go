@@ -1,17 +1,20 @@
 package main
 
 import (
+	"net/http"
+	"os"
+	"time"
+
 	api "github.com/Financial-Times/api-endpoint"
 	"github.com/Financial-Times/draft-content-api/content"
 	"github.com/Financial-Times/draft-content-api/health"
+	"github.com/Financial-Times/go-ft-http/fthttp"
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/husobee/vestigo"
 	"github.com/jawher/mow.cli"
 	"github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"os"
 )
 
 const appDescription = "PAC Draft Content"
@@ -38,6 +41,13 @@ func main() {
 		Value:  "8080",
 		Desc:   "Port to listen on",
 		EnvVar: "APP_PORT",
+	})
+
+	appTimeout := app.String(cli.StringOpt{
+		Name:   "app-timeout",
+		Value:  "8s",
+		Desc:   "Draft Content API Response Timeout",
+		EnvVar: "APP_TIMEOUT",
 	})
 
 	contentRWEndpoint := app.String(cli.StringOpt{
@@ -80,14 +90,23 @@ func main() {
 	log.Infof("[Startup] %v is starting", *appSystemCode)
 
 	app.Action = func() {
-		log.Infof("System code: %s, App Name: %s, Port: %s", *appSystemCode, *appName, *port)
+		log.Infof("System code: %s, App Name: %s, Port: %s, App Timeout: %sms", *appSystemCode, *appName, *port, *appTimeout)
 
-		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint)
-		draftContentMapperService := content.NewDraftContentMapperService(*mamEndpoint)
+		timeout, err := time.ParseDuration(*appTimeout)
 
-		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey)
+		if err != nil {
+			log.Errorf("App could not start, error=[%s]\n", err)
+			return
+		}
 
-		contentHandler := content.NewHandler(cAPI, draftContentRWService)
+		httpClient := fthttp.NewClient(timeout, "PAC", *appSystemCode)
+
+		draftContentMapperService := content.NewDraftContentMapperService(*mamEndpoint, httpClient)
+		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint, draftContentMapperService, httpClient)
+
+		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey, httpClient)
+
+		contentHandler := content.NewHandler(cAPI, draftContentRWService, timeout)
 		healthService := health.NewHealthService(*appSystemCode, *appName, appDescription, draftContentRWService, draftContentMapperService, cAPI)
 		serveEndpoints(*port, apiYml, contentHandler, healthService)
 	}

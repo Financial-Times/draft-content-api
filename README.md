@@ -33,6 +33,7 @@ Options:
 
         --app-system-code="draft-content-api"    System Code of the application ($APP_SYSTEM_CODE)
         --app-name="draft-content-api"           Application name ($APP_NAME)
+        --app-timeout="8s"                       Endpoints Timeout Duration ($APP_TIMEOUT)
         --port="8080"                            Port to listen on ($APP_PORT)
         --content-rw-endpoint="..."              Endpoint for draft content RW ($DRAFT_CONTENT_RW_ENDPOINT)
         --mam-endpoint="..."                     Endpoint for draft content mapper ($DRAFT_CONTENT_MAPPER_ENDPOINT)
