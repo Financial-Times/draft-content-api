@@ -11,7 +11,7 @@ metadata:
     ingress.kubernetes.io/auth-realm: "Authentication Required"
 spec:
   rules:
-    - host: "*.ft.com"
+    - host: {{ template "cluster_subdomain" . }}.ft.com
       http:
         paths:
         - path: /drafts/nativecontent
