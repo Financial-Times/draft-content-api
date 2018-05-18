@@ -57,10 +57,10 @@ jobs:
       - run:
           name: External Dependencies
           command: |
-            go get -u github.com/kardianos/govendor
+            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
       - run:
-          name: Govendor Sync
-          command: govendor sync -v
+          name: Importing libraries
+          command: dep ensure -v -vendor-only
       - run:
           name: Go Build
           command: go build -v
