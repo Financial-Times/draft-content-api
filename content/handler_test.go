@@ -223,12 +223,13 @@ func TestReadConnectionError(t *testing.T) {
 	rw.AssertExpectations(t)
 }
 
-func TestWriteNativeContent(t *testing.T) {
+func TestWriteMethodeNativeContent(t *testing.T) {
 	contentUUID := uuid.NewV4().String()
 	draftBody := "{\"foo\":\"bar\"}"
 	headers := map[string]string{
 		tidutils.TransactionIDHeader: testTID,
 		originSystemIdHeader:         "methode-web-pub",
+		contentTypeHeader:            "application/json",
 	}
 
 	rw := mockDraftContentRW{}
@@ -242,6 +243,39 @@ func TestWriteNativeContent(t *testing.T) {
 	req := httptest.NewRequest("PUT", fmt.Sprintf("http://api.ft.com/drafts/nativecontent/%s", contentUUID), strings.NewReader(draftBody))
 	req.Header.Set(tidutils.TransactionIDHeader, testTID)
 	req.Header.Set(originSystemIdHeader, "methode-web-pub")
+	req.Header.Set(contentTypeHeader, "application/json")
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+	resp := w.Result()
+	_, err := ioutil.ReadAll(resp.Body)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.NoError(t, err)
+	rw.AssertExpectations(t)
+}
+
+func TestWriteSparkNativeContent(t *testing.T) {
+	contentUUID := uuid.NewV4().String()
+	draftBody := "{\"foo\":\"bar\"}"
+	headers := map[string]string{
+		tidutils.TransactionIDHeader: testTID,
+		originSystemIdHeader:         "cct",
+		contentTypeHeader:            "application/vnd.ft-upp-article+json; version=1.0; charset=utf-8",
+	}
+
+	rw := mockDraftContentRW{}
+	/* mock.AnythingOfType(...) doesn't work for interfaces: https://github.com/stretchr/testify/issues/519 */
+	rw.On("Write", mock.Anything, contentUUID, &draftBody, headers).Return(nil)
+
+	h := NewHandler(nil, &rw, testTimeout)
+	r := vestigo.NewRouter()
+	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
+
+	req := httptest.NewRequest("PUT", fmt.Sprintf("http://api.ft.com/drafts/nativecontent/%s", contentUUID), strings.NewReader(draftBody))
+	req.Header.Set(tidutils.TransactionIDHeader, testTID)
+	req.Header.Set(originSystemIdHeader, "cct")
+	req.Header.Set(contentTypeHeader, "application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -306,6 +340,7 @@ func TestWriteNativeContentInvalidOriginSystemId(t *testing.T) {
 	req := httptest.NewRequest("PUT", fmt.Sprintf("http://api.ft.com/drafts/nativecontent/%s", contentUUID), strings.NewReader(draftBody))
 	req.Header.Set(tidutils.TransactionIDHeader, testTID)
 	req.Header.Set(originSystemIdHeader, "wordpress")
+	req.Header.Set(contentTypeHeader, "application/json")
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -315,6 +350,29 @@ func TestWriteNativeContentInvalidOriginSystemId(t *testing.T) {
 	json.NewDecoder(resp.Body).Decode(&response)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	assert.Contains(t, response["message"], "Invalid origin system id", "error message")
+}
+
+func TestWriteNativeContentInvalidContentType(t *testing.T) {
+	contentUUID := uuid.NewV4().String()
+	draftBody := "{\"foo\":\"bar\"}"
+
+	h := NewHandler(nil, nil, testTimeout)
+	r := vestigo.NewRouter()
+	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
+
+	req := httptest.NewRequest("PUT", fmt.Sprintf("http://api.ft.com/drafts/nativecontent/%s", contentUUID), strings.NewReader(draftBody))
+	req.Header.Set(tidutils.TransactionIDHeader, testTID)
+	req.Header.Set(originSystemIdHeader, "cct")
+	req.Header.Set(contentTypeHeader, "application/xml")
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+	resp := w.Result()
+
+	response := make(map[string]string)
+	json.NewDecoder(resp.Body).Decode(&response)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Contains(t, response["message"], "Invalid content type", "error message")
 }
 
 func TestWriteNativeContentWriteError(t *testing.T) {
@@ -331,6 +389,7 @@ func TestWriteNativeContentWriteError(t *testing.T) {
 	req := httptest.NewRequest("PUT", fmt.Sprintf("http://api.ft.com/drafts/nativecontent/%s", contentUUID), strings.NewReader(draftBody))
 	req.Header.Set(tidutils.TransactionIDHeader, testTID)
 	req.Header.Set(originSystemIdHeader, "methode-web-pub")
+	req.Header.Set(contentTypeHeader, "application/json")
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)

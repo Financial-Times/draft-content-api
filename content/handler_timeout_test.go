@@ -156,6 +156,7 @@ func TestNativeWriteTimeout(t *testing.T) {
 	request, _ := http.NewRequest(http.MethodPut, server.URL+"/drafts/nativecontent/"+contentUUID, nil)
 	request.Header.Set(tidutils.TransactionIDHeader, testTID)
 	request.Header.Set(originSystemIdHeader, "methode-web-pub")
+	request.Header.Set(contentTypeHeader, "application/json")
 
 	resp, err := client.Do(request)
 	defer resp.Body.Close()
