@@ -62,11 +62,23 @@ paths:
           required: true
           type: string
           x-example: methode-web-pub
+      requestBody:
+        description: Draft content in native (CMS) format.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+              format: binary
+          application/vnd.ft-upp-article+json; version=1.0; charset=utf-8:
+            schema:
+              type: string
+              format: binary
       responses:
         200:
           description: The content has been saved successfully.
         400:
-          description: Invalid uuid or `X-Origin-System-Id` supplied, or unreadable HTTP entity payload.
+          description: Invalid uuid or `X-Origin-System-Id` or `Content-Type` supplied, or unreadable HTTP entity payload.
         500:
           description: Error writing content to store.
 
