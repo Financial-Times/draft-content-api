@@ -33,8 +33,8 @@ var (
 	}
 
 	allowedContentTypes = map[string]struct{}{
-		"application/json":                                                {},
-		"application/vnd.ft-upp-article+json; version=1.0; charset=utf-8": {},
+		"application/json":                    {},
+		"application/vnd.ft-upp-article+json": {},
 	}
 )
 
@@ -231,12 +231,21 @@ func validateOrigin(id string) (string, error) {
 }
 
 func validateContentType(contentType string) (string, error) {
+	strippedType := stripMediaTypeParameters(contentType)
+
 	var err error
-	if _, found := allowedContentTypes[contentType]; !found {
+	if _, found := allowedContentTypes[strippedType]; !found {
 		err = errors.New(fmt.Sprintf("unsupported or missing value for Content-Type: %v", contentType))
 	}
 
 	return contentType, err
+}
+
+func stripMediaTypeParameters(contentType string) string {
+	if strings.Contains(contentType, ";") {
+		contentType = strings.Split(contentType, ";")[0]
+	}
+	return contentType
 }
 
 func errorMessageForRead(status int) string {

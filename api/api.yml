@@ -51,7 +51,7 @@ paths:
         - Draft Content
       consumes:
         - application/json
-        - application/vnd.ft-upp-article+json; version=1.0; charset=utf-8
+        - application/vnd.ft-upp-article+json
       parameters:
         - name: uuid
           in: path
