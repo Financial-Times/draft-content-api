@@ -21,6 +21,21 @@ import (
 const (
 	typePrefix = "http://www.ft.com/ontology/content/"
 	idPrefix   = "http://www.ft.com/thing/"
+
+	contentTypeHeader    = "Content-Type"
+	originSystemIdHeader = "X-Origin-System-Id"
+)
+
+var (
+	allowedOriginSystemIdValues = map[string]struct{}{
+		"methode-web-pub": {},
+		"cct":             {},
+	}
+
+	allowedContentTypes = map[string]struct{}{
+		"application/json":                    {},
+		"application/vnd.ft-upp-article+json": {},
+	}
 )
 
 type Handler struct {
@@ -90,6 +105,13 @@ func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	contentType, err := validateContentType(r.Header.Get(contentTypeHeader))
+	if err != nil {
+		writeLog.WithError(err).Error("Invalid content type")
+		writeMessage(w, fmt.Sprintf("Invalid content type: %v", contentType), http.StatusBadRequest)
+		return
+	}
+
 	raw, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		writeLog.WithError(err).Error("Unable to read draft content body")
@@ -104,6 +126,7 @@ func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
 	draftHeaders := map[string]string{
 		tidutils.TransactionIDHeader: tID,
 		originSystemIdHeader:         originSystemId,
+		contentTypeHeader:            contentType,
 	}
 
 	writeLog.Info("write native content to content RW ...")
@@ -205,6 +228,24 @@ func validateOrigin(id string) (string, error) {
 	}
 
 	return id, err
+}
+
+func validateContentType(contentType string) (string, error) {
+	strippedType := stripMediaTypeParameters(contentType)
+
+	var err error
+	if _, found := allowedContentTypes[strippedType]; !found {
+		err = errors.New(fmt.Sprintf("unsupported or missing value for Content-Type: %v", contentType))
+	}
+
+	return contentType, err
+}
+
+func stripMediaTypeParameters(contentType string) string {
+	if strings.Contains(contentType, ";") {
+		contentType = strings.Split(contentType, ";")[0]
+	}
+	return contentType
 }
 
 func errorMessageForRead(status int) string {

@@ -29,6 +29,7 @@ type mockMapper struct {
 const (
 	testDraftRef     = "tid_draft"
 	testLastModified = "2018-02-21T14:25:00Z"
+	testContentType  = "application/cobol"
 )
 
 func TestReadContent(t *testing.T) {
@@ -138,9 +139,10 @@ func TestWriteContent(t *testing.T) {
 	headers := map[string]string{
 		tidutils.TransactionIDHeader: testTID,
 		originSystemIdHeader:         testSystemId,
+		contentTypeHeader:            testContentType,
 	}
 
-	server := mockWriteToGenericRW(t, http.StatusOK, contentUUID, testSystemId, content)
+	server := mockWriteToGenericRW(t, http.StatusOK, contentUUID, testSystemId, content, testContentType)
 	defer server.Close()
 
 	rw := NewDraftContentRWService(server.URL, nil, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
@@ -156,9 +158,10 @@ func TestWriteContentWriterReturnsStatusCreated(t *testing.T) {
 	headers := map[string]string{
 		tidutils.TransactionIDHeader: testTID,
 		originSystemIdHeader:         testSystemId,
+		contentTypeHeader:            testContentType,
 	}
 
-	server := mockWriteToGenericRW(t, http.StatusCreated, contentUUID, testSystemId, content)
+	server := mockWriteToGenericRW(t, http.StatusCreated, contentUUID, testSystemId, content, testContentType)
 	defer server.Close()
 
 	rw := NewDraftContentRWService(server.URL, nil, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
@@ -174,9 +177,10 @@ func TestWriteContentWriterReturnsError(t *testing.T) {
 	headers := map[string]string{
 		tidutils.TransactionIDHeader: testTID,
 		originSystemIdHeader:         testSystemId,
+		contentTypeHeader:            testContentType,
 	}
 
-	server := mockWriteToGenericRW(t, http.StatusServiceUnavailable, contentUUID, testSystemId, content)
+	server := mockWriteToGenericRW(t, http.StatusServiceUnavailable, contentUUID, testSystemId, content, testContentType)
 	defer server.Close()
 
 	rw := NewDraftContentRWService(server.URL, nil, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
@@ -201,12 +205,13 @@ func mockReadFromGenericRW(t *testing.T, status int, contentUUID string, systemI
 	}))
 }
 
-func mockWriteToGenericRW(t *testing.T, status int, contentUUID string, systemID string, expectedBody string) *httptest.Server {
+func mockWriteToGenericRW(t *testing.T, status int, contentUUID, systemID, expectedBody, contentType string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "PUT", r.Method, "HTTP method")
 		assert.Equal(t, fmt.Sprintf("/drafts/content/%s", contentUUID), r.URL.Path)
 		assert.Equal(t, testTID, r.Header.Get(tidutils.TransactionIDHeader), tidutils.TransactionIDHeader)
 		assert.Equal(t, systemID, r.Header.Get(originSystemIdHeader), originSystemIdHeader)
+		assert.Equal(t, contentType, r.Header.Get(contentTypeHeader), contentTypeHeader)
 
 		by, err := ioutil.ReadAll(r.Body)
 		assert.NoError(t, err)

@@ -14,17 +14,12 @@ import (
 )
 
 const (
-	originSystemIdHeader = "X-Origin-System-Id"
-	rwURLPattern         = "%s/drafts/content/%s"
+	rwURLPattern = "%s/drafts/content/%s"
 )
 
 var (
 	ErrDraftNotFound    = errors.New("draft content not found in PAC")
 	ErrDraftNotMappable = errors.New("draft content is invalid for mapping")
-
-	allowedOriginSystemIdValues = map[string]struct{}{
-		"methode-web-pub": {},
-	}
 )
 
 type DraftContentRW interface {
@@ -134,6 +129,7 @@ func (rw *draftContentRW) Write(ctx context.Context, contentUUID string, content
 	}
 	req.Header.Set(tidutils.TransactionIDHeader, tid)
 	req.Header.Set(originSystemIdHeader, headers[originSystemIdHeader])
+	req.Header.Set(contentTypeHeader, headers[contentTypeHeader])
 
 	resp, err := rw.httpClient.Do(req)
 	if err != nil {

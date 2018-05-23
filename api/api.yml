@@ -49,6 +49,9 @@ paths:
       description: Saves the draft content with the given uuid in native (CMS) format.
       tags:
         - Draft Content
+      consumes:
+        - application/json
+        - application/vnd.ft-upp-article+json
       parameters:
         - name: uuid
           in: path
@@ -66,7 +69,7 @@ paths:
         200:
           description: The content has been saved successfully.
         400:
-          description: Invalid uuid or `X-Origin-System-Id` supplied, or unreadable HTTP entity payload.
+          description: Invalid uuid or `X-Origin-System-Id` or `Content-Type` supplied, or unreadable HTTP entity payload.
         500:
           description: Error writing content to store.
 
