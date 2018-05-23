@@ -49,6 +49,9 @@ paths:
       description: Saves the draft content with the given uuid in native (CMS) format.
       tags:
         - Draft Content
+      consumes:
+        - application/json
+        - application/vnd.ft-upp-article+json; version=1.0; charset=utf-8
       parameters:
         - name: uuid
           in: path
@@ -62,18 +65,6 @@ paths:
           required: true
           type: string
           x-example: methode-web-pub
-      requestBody:
-        description: Draft content in native (CMS) format.
-        required: true
-        content:
-          application/json:
-            schema:
-              type: string
-              format: binary
-          application/vnd.ft-upp-article+json; version=1.0; charset=utf-8:
-            schema:
-              type: string
-              format: binary
       responses:
         200:
           description: The content has been saved successfully.
