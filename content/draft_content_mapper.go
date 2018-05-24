@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/Financial-Times/draft-content-api/platform"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -30,25 +31,26 @@ func (e MapperError) MapperStatusCode() int {
 }
 
 type draftContentMapper struct {
-	pacExternalService
+	*platform.Service
 }
 
 func NewDraftContentMapperService(endpoint string, httpClient *http.Client) DraftContentMapper {
-	return &draftContentMapper{pacExternalService{endpoint, httpClient}}
+	s := platform.NewService(endpoint, httpClient)
+	return &draftContentMapper{s}
 }
 
 func (mapper *draftContentMapper) MapNativeContent(ctx context.Context, contentUUID string, nativeBody io.Reader, contentType string) (io.ReadCloser, error) {
 	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
 	mapLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
 
-	req, err := newHttpRequest(ctx, "POST", fmt.Sprintf("%s/map?mode=suggest", mapper.endpoint), nativeBody)
+	req, err := newHttpRequest(ctx, "POST", fmt.Sprintf("%s/map?mode=suggest", mapper.Endpoint()), nativeBody)
 	if err != nil {
 		mapLog.WithError(err).Error("Error in creating the HTTP request to the mapper")
 		return nil, err
 	}
 	req.Header.Set("Content-Type", contentType)
 
-	resp, err := mapper.httpClient.Do(req)
+	resp, err := mapper.HTTPClient().Do(req)
 	if err != nil {
 		return nil, err
 	}
