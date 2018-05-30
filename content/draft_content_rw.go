@@ -32,12 +32,12 @@ type DraftContentRW interface {
 
 type draftContentRW struct {
 	*platform.Service
-	mapper DraftContentMapper
+	resolver DraftContentMapperResolver
 }
 
-func NewDraftContentRWService(endpoint string, mapper DraftContentMapper, httpClient *http.Client) DraftContentRW {
+func NewDraftContentRWService(endpoint string, resolver DraftContentMapperResolver, httpClient *http.Client) DraftContentRW {
 	s := platform.NewService(endpoint, httpClient)
-	return &draftContentRW{s, mapper}
+	return &draftContentRW{s, resolver}
 }
 
 func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.ReadCloser, error) {
@@ -55,8 +55,19 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 	case http.StatusOK:
 		var nativeContent io.Reader
 		nativeContent, err = rw.constructNativeDocumentForMapper(ctx, resp.Body, resp.Header.Get("Last-Modified-RFC3339"), resp.Header.Get("Write-Request-Id"))
+
 		if err == nil {
-			mappedContent, err = rw.mapper.MapNativeContent(ctx, contentUUID, nativeContent, resp.Header.Get("Content-Type"))
+			contentType := resp.Header.Get("Content-Type")
+			log.Info("Received headers from readNativeContent: %v", resp.Header)
+			mapper, resolverErr := rw.resolver.MapperForOriginIdAndContentType(resp.Header.Get("X-Origin-System-Id"), contentType)
+
+			if resolverErr != nil {
+				readLog.WithError(resolverErr).Error("Unable to map content")
+				return nil, resolverErr
+			}
+
+			mappedContent, err = mapper.MapNativeContent(ctx, contentUUID, nativeContent, contentType)
+
 			if err != nil {
 				readLog.WithError(err).Warn("Mapper error")
 				switch err.(type) {
@@ -64,7 +75,6 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 					switch err.(MapperError).MapperStatusCode() {
 					case http.StatusNotFound:
 						fallthrough
-
 					case http.StatusUnprocessableEntity:
 						err = ErrDraftNotMappable
 

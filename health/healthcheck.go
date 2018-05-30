@@ -3,10 +3,10 @@ package health
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/service-status-go/gtg"
-	"time"
 )
 
 type externalService interface {
@@ -14,36 +14,39 @@ type externalService interface {
 	GTG() error
 }
 
-type HealthService struct {
+type Service struct {
 	health.HealthCheck
-	uppContentAPI      externalService
-	draftContentRW     externalService
-	draftContentMapper externalService
+	uppContentAPI  externalService
+	draftContentRW externalService
+	methodeMapper  externalService
+	sparkValidator externalService
 }
 
-func NewHealthService(appSystemCode string, appName string, appDescription string, draftContent externalService, mapper externalService, capi externalService) *HealthService {
-	service := &HealthService{draftContentRW: draftContent, draftContentMapper: mapper, uppContentAPI: capi}
+func NewHealthService(appSystemCode string, appName string, appDescription string,
+	draftContent externalService, mam externalService, capi externalService, ucv externalService) *Service {
+	service := &Service{draftContentRW: draftContent, methodeMapper: mam, uppContentAPI: capi, sparkValidator: ucv}
 	service.SystemCode = appSystemCode
 	service.Name = appName
 	service.Description = appDescription
 	service.Checks = []health.Check{
 		service.draftContentRWCheck(),
-		service.draftContentMapperCheck(),
+		service.draftContentMethodeArticleMapperCheck(),
 		service.contentAPICheck(),
+		service.draftContentUppValidatorCheck(),
 	}
 	return service
 }
 
-func (service *HealthService) HealthCheckHandleFunc() func(w http.ResponseWriter, r *http.Request) {
+func (service *Service) HealthCheckHandleFunc() func(w http.ResponseWriter, r *http.Request) {
 	hc := health.TimedHealthCheck{
-		service.HealthCheck,
-		10 * time.Second,
+		HealthCheck: service.HealthCheck,
+		Timeout:     10 * time.Second,
 	}
 
 	return health.Handler(hc)
 }
 
-func (service *HealthService) draftContentRWCheck() health.Check {
+func (service *Service) draftContentRWCheck() health.Check {
 	return health.Check{
 		ID:               "check-draft-content-rw",
 		BusinessImpact:   "Draft content cannot be provided for suggestions",
@@ -55,19 +58,31 @@ func (service *HealthService) draftContentRWCheck() health.Check {
 	}
 }
 
-func (service *HealthService) draftContentMapperCheck() health.Check {
+func (service *Service) draftContentMethodeArticleMapperCheck() health.Check {
 	return health.Check{
 		ID:               "check-draft-content-mapper",
 		BusinessImpact:   "Draft content cannot be provided for suggestions",
 		Name:             "Check draft content mapper service",
 		PanicGuide:       "https://dewey.ft.com/draft-content-api.html",
 		Severity:         1,
-		TechnicalSummary: fmt.Sprintf("Draft content mapper is not available at %v", service.draftContentMapper.Endpoint()),
-		Checker:          externalServiceChecker(service.draftContentMapper, "Draft content mapper"),
+		TechnicalSummary: fmt.Sprintf("Draft content mapper is not available at %v", service.methodeMapper.Endpoint()),
+		Checker:          externalServiceChecker(service.methodeMapper, "Draft content methode-article-mapper"),
 	}
 }
 
-func (service *HealthService) contentAPICheck() health.Check {
+func (service *Service) draftContentUppValidatorCheck() health.Check {
+	return health.Check{
+		ID:               "check-draft-content-mapper",
+		BusinessImpact:   "Draft content cannot be provided for suggestions",
+		Name:             "Check upp-content-validator service",
+		PanicGuide:       "https://dewey.ft.com/draft-content-api.html",
+		Severity:         1,
+		TechnicalSummary: fmt.Sprintf("Draft content mapper is not available at %v", service.methodeMapper.Endpoint()),
+		Checker:          externalServiceChecker(service.sparkValidator, "Draft content upp-content-validator"),
+	}
+}
+
+func (service *Service) contentAPICheck() health.Check {
 	return health.Check{
 		ID:               "check-content-api-health",
 		BusinessImpact:   "Impossible to serve content through PAC",
@@ -88,8 +103,8 @@ func externalServiceChecker(s externalService, serviceName string) func() (strin
 	}
 }
 
-func (service *HealthService) GTGChecker() gtg.StatusChecker {
-	fns := []gtg.StatusChecker{}
+func (service *Service) GTGChecker() gtg.StatusChecker {
+	var fns []gtg.StatusChecker
 
 	for _, c := range service.Checks {
 		fns = append(fns, gtgCheck(c.Checker))

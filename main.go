@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	api "github.com/Financial-Times/api-endpoint"
+	"github.com/Financial-Times/api-endpoint"
 	"github.com/Financial-Times/draft-content-api/content"
 	"github.com/Financial-Times/draft-content-api/health"
 	"github.com/Financial-Times/go-ft-http/fthttp"
@@ -64,6 +64,13 @@ func main() {
 		EnvVar: "DRAFT_CONTENT_MAM_ENDPOINT",
 	})
 
+	ucvEndpoint := app.String(cli.StringOpt{
+		Name:   "ucv-endpoint",
+		Value:  "http://localhost:11071",
+		Desc:   "Endpoint for mapping Spark/CCT article draft content",
+		EnvVar: "DRAFT_CONTENT_UCV_ENDPOINT",
+	})
+
 	contentEndpoint := app.String(cli.StringOpt{
 		Name:   "content-endpoint",
 		Value:  "http://test.api.ft.com/content",
@@ -101,13 +108,23 @@ func main() {
 
 		httpClient := fthttp.NewClient(timeout, "PAC", *appSystemCode)
 
-		draftContentMapperService := content.NewDraftContentMapperService(*mamEndpoint, httpClient)
-		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint, draftContentMapperService, httpClient)
+		mamService := content.NewDraftContentMapperService(*mamEndpoint, httpClient)
+		ucvService := content.NewSparkDraftContentMapperService(*ucvEndpoint, httpClient)
+
+		resolverConfig := map[string]map[string]content.DraftContentMapper{
+			"methode-web-pub": {content.AnyType: mamService},
+			"cct":             {"application/vnd.ft-upp-article+json": ucvService},
+		}
+
+		resolver := content.NewDraftContentMapperResolver(resolverConfig)
+
+		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint, resolver, httpClient)
 
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey, httpClient)
 
 		contentHandler := content.NewHandler(cAPI, draftContentRWService, timeout)
-		healthService := health.NewHealthService(*appSystemCode, *appName, appDescription, draftContentRWService, draftContentMapperService, cAPI)
+		healthService := health.NewHealthService(*appSystemCode, *appName,
+			appDescription, draftContentRWService, mamService, cAPI, ucvService)
 		serveEndpoints(*port, apiYml, contentHandler, healthService)
 	}
 	err := app.Run(os.Args)
@@ -117,7 +134,7 @@ func main() {
 	}
 }
 
-func serveEndpoints(port string, apiYml *string, contentHandler *content.Handler, healthService *health.HealthService) {
+func serveEndpoints(port string, apiYml *string, contentHandler *content.Handler, healthService *health.Service) {
 
 	r := vestigo.NewRouter()
 
