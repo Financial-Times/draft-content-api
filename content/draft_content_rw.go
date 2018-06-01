@@ -19,8 +19,9 @@ const (
 )
 
 var (
-	ErrDraftNotFound    = errors.New("draft content not found in PAC")
-	ErrDraftNotMappable = errors.New("draft content is invalid for mapping")
+	ErrDraftNotFound                = errors.New("draft content not found in PAC")
+	ErrDraftNotMappable             = errors.New("draft content is invalid for mapping")
+	ErrDraftContentTypeNotSupported = errors.New("draft content-type is invalid for mapping")
 )
 
 type DraftContentRW interface {
@@ -58,7 +59,6 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 
 		if err == nil {
 			contentType := resp.Header.Get("Content-Type")
-			log.Info("Received headers from readNativeContent: %v", resp.Header)
 			mapper, resolverErr := rw.resolver.MapperForOriginIdAndContentType(resp.Header.Get("X-Origin-System-Id"), contentType)
 
 			if resolverErr != nil {
@@ -75,6 +75,8 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 					switch err.(MapperError).MapperStatusCode() {
 					case http.StatusNotFound:
 						fallthrough
+					case http.StatusUnsupportedMediaType:
+						err = ErrDraftContentTypeNotSupported
 					case http.StatusUnprocessableEntity:
 						err = ErrDraftNotMappable
 

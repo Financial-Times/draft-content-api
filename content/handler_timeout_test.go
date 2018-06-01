@@ -135,8 +135,6 @@ func TestReadTimeoutFromMethodeArticleMapper(t *testing.T) {
 
 func testRequest(server *httptest.Server, contentUUID string) (*http.Response, error) {
 	request, _ := http.NewRequest("GET", server.URL+"/drafts/content/"+contentUUID, nil)
-	//request.Header.Set("X-Origin-System-Id", "methode-web-pub")
-	//request.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(request)
 	return resp, err
 }

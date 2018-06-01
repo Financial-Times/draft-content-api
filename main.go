@@ -66,7 +66,7 @@ func main() {
 
 	ucvEndpoint := app.String(cli.StringOpt{
 		Name:   "ucv-endpoint",
-		Value:  "http://localhost:11071",
+		Value:  "http://localhost:9876",
 		Desc:   "Endpoint for mapping Spark/CCT article draft content",
 		EnvVar: "DRAFT_CONTENT_UCV_ENDPOINT",
 	})
@@ -111,12 +111,14 @@ func main() {
 		mamService := content.NewDraftContentMapperService(*mamEndpoint, httpClient)
 		ucvService := content.NewSparkDraftContentMapperService(*ucvEndpoint, httpClient)
 
-		resolverConfig := map[string]map[string]content.DraftContentMapper{
-			"methode-web-pub": {content.AnyType: mamService},
-			"cct":             {"application/vnd.ft-upp-article+json": ucvService},
+		originIdMapping := map[string]content.DraftContentMapper{
+			"methode-web-pub": mamService,
+		}
+		contentTypeMapping := map[string]content.DraftContentMapper{
+			"application/vnd.ft-upp-article+json": ucvService,
 		}
 
-		resolver := content.NewDraftContentMapperResolver(resolverConfig)
+		resolver := content.NewDraftContentMapperResolver(originIdMapping, contentTypeMapping)
 
 		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint, resolver, httpClient)
 
