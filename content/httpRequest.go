@@ -11,8 +11,8 @@ import (
 func newHttpRequest(ctx context.Context, method string, url string, payload io.Reader) (req *http.Request, err error) {
 	req, err = http.NewRequest(method, url, payload)
 	if err == nil {
-		tid, tiderr := tidutils.GetTransactionIDFromContext(ctx)
-		if tiderr == nil {
+		tid, tidErr := tidutils.GetTransactionIDFromContext(ctx)
+		if tidErr == nil {
 			req.Header.Set(tidutils.TransactionIDHeader, tid)
 		}
 		req = req.WithContext(ctx)

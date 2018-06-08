@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/Financial-Times/draft-content-api/platform"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,8 +19,9 @@ const (
 )
 
 var (
-	ErrDraftNotFound    = errors.New("draft content not found in PAC")
-	ErrDraftNotMappable = errors.New("draft content is invalid for mapping")
+	ErrDraftNotFound                = errors.New("draft content not found in PAC")
+	ErrDraftNotMappable             = errors.New("draft content is invalid for mapping")
+	ErrDraftContentTypeNotSupported = errors.New("draft content-type is invalid for mapping")
 )
 
 type DraftContentRW interface {
@@ -30,12 +32,13 @@ type DraftContentRW interface {
 }
 
 type draftContentRW struct {
-	pacExternalService
-	mapper DraftContentMapper
+	*platform.Service
+	resolver DraftContentMapperResolver
 }
 
-func NewDraftContentRWService(endpoint string, mapper DraftContentMapper, httpClient *http.Client) DraftContentRW {
-	return &draftContentRW{pacExternalService{endpoint, httpClient}, mapper}
+func NewDraftContentRWService(endpoint string, resolver DraftContentMapperResolver, httpClient *http.Client) DraftContentRW {
+	s := platform.NewService(endpoint, httpClient)
+	return &draftContentRW{s, resolver}
 }
 
 func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.ReadCloser, error) {
@@ -53,8 +56,18 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 	case http.StatusOK:
 		var nativeContent io.Reader
 		nativeContent, err = rw.constructNativeDocumentForMapper(ctx, resp.Body, resp.Header.Get("Last-Modified-RFC3339"), resp.Header.Get("Write-Request-Id"))
+
 		if err == nil {
-			mappedContent, err = rw.mapper.MapNativeContent(ctx, contentUUID, nativeContent, resp.Header.Get("Content-Type"))
+			contentType := resp.Header.Get("Content-Type")
+			mapper, resolverErr := rw.resolver.MapperForOriginIdAndContentType(resp.Header.Get("X-Origin-System-Id"), contentType)
+
+			if resolverErr != nil {
+				readLog.WithError(resolverErr).Error("Unable to map content")
+				return nil, resolverErr
+			}
+
+			mappedContent, err = mapper.MapNativeContent(ctx, contentUUID, nativeContent, contentType)
+
 			if err != nil {
 				readLog.WithError(err).Warn("Mapper error")
 				switch err.(type) {
@@ -62,7 +75,8 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 					switch err.(MapperError).MapperStatusCode() {
 					case http.StatusNotFound:
 						fallthrough
-
+					case http.StatusUnsupportedMediaType:
+						err = ErrDraftContentTypeNotSupported
 					case http.StatusUnprocessableEntity:
 						err = ErrDraftNotMappable
 
@@ -85,13 +99,13 @@ func (rw *draftContentRW) readNativeContent(ctx context.Context, contentUUID str
 	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
 	readLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
 
-	req, err := newHttpRequest(ctx, "GET", fmt.Sprintf(rwURLPattern, rw.endpoint, contentUUID), nil)
+	req, err := newHttpRequest(ctx, "GET", fmt.Sprintf(rwURLPattern, rw.Endpoint(), contentUUID), nil)
 	if err != nil {
 		readLog.WithError(err).Error("Error in creating the HTTP read request from content RW")
 		return nil, err
 	}
 
-	return rw.httpClient.Do(req)
+	return rw.HTTPClient().Do(req)
 }
 
 func (rw *draftContentRW) constructNativeDocumentForMapper(ctx context.Context, rawNativeBody io.Reader, lastModified string, writeRef string) (io.Reader, error) {
@@ -122,7 +136,7 @@ func (rw *draftContentRW) Write(ctx context.Context, contentUUID string, content
 
 	writeLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
 
-	req, err := newHttpRequest(ctx, "PUT", fmt.Sprintf(rwURLPattern, rw.endpoint, contentUUID), bytes.NewBuffer([]byte(*content)))
+	req, err := newHttpRequest(ctx, "PUT", fmt.Sprintf(rwURLPattern, rw.Endpoint(), contentUUID), bytes.NewBuffer([]byte(*content)))
 	if err != nil {
 		writeLog.WithError(err).Error("Error in creating the HTTP write request to content RW")
 		return err
@@ -131,7 +145,7 @@ func (rw *draftContentRW) Write(ctx context.Context, contentUUID string, content
 	req.Header.Set(originSystemIdHeader, headers[originSystemIdHeader])
 	req.Header.Set(contentTypeHeader, headers[contentTypeHeader])
 
-	resp, err := rw.httpClient.Do(req)
+	resp, err := rw.HTTPClient().Do(req)
 	if err != nil {
 		writeLog.WithError(err).Error("Error making the HTTP request to content RW")
 		return err
