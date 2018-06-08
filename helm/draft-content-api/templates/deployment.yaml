@@ -36,6 +36,8 @@ spec:
           value: "http://generic-rw-aurora:8080"
         - name: DRAFT_CONTENT_MAM_ENDPOINT
           value: "http://methode-article-mapper:8080"
+        - name: DRAFT_CONTENT_UCV_ENDPOINT
+          value: "http://upp-content-validator:8080"
         - name: CONTENT_ENDPOINT
           valueFrom:
             configMapKeyRef:
