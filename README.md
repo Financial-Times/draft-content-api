@@ -11,18 +11,18 @@ At the moment the service is a simple proxy to UPP Content API.
 
 Download the source code, dependencies and test dependencies:
 
-        go get -u github.com/kardianos/govendor
-        go get -u github.com/Financial-Times/draft-content-api
-        cd $GOPATH/src/github.com/Financial-Times/draft-content-api
-        govendor sync
+        curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+        mkdir $GOPATH/src/github.com/Financial-Times/draft-content-api
+        cd $GOPATH/src/github.com/Financial-Times
+        git clone https://github.com/Financial-Times/draft-content-api.git
+        cd public-things-api && dep ensure -vendor-only
         go build .
 
 ## Running locally
 
 1. Run the tests and install the binary:
 
-        govendor sync
-        govendor test -v -race
+        go test ./...
         go install
 
 2. Run the binary (using the `help` flag to see the available optional arguments):
