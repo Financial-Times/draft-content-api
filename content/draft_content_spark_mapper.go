@@ -1,33 +1,26 @@
 package content
 
 import (
+	"net/http"
 	"context"
-	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
-
+	"fmt"
+	"encoding/json"
+	"github.com/Financial-Times/draft-content-api/platform"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	log "github.com/sirupsen/logrus"
 )
 
 type sparkDraftContentMapper struct {
-	endpoint string
-	client   *http.Client
-}
-
-func (mapper *sparkDraftContentMapper) GTG() error {
-	return nil
-}
-
-func (mapper *sparkDraftContentMapper) Endpoint() string {
-	return mapper.endpoint
+ *platform.Service
 }
 
 func NewSparkDraftContentMapperService(endpoint string, httpClient *http.Client) DraftContentMapper {
-	return &sparkDraftContentMapper{endpoint: endpoint, client: httpClient}
+	s := platform.NewService(endpoint, httpClient)
+	return &sparkDraftContentMapper{s}
 }
+
 
 func (mapper *sparkDraftContentMapper) MapNativeContent(ctx context.Context, contentUUID string,
 	nativeBody io.Reader, contentType string) (io.ReadCloser, error) {
@@ -43,7 +36,7 @@ func (mapper *sparkDraftContentMapper) MapNativeContent(ctx context.Context, con
 	}
 	req.Header.Set("Content-Type", contentType)
 
-	resp, err := mapper.client.Do(req)
+	resp, err := mapper.HTTPClient().Do(req)
 	if err != nil {
 		return nil, err
 	}

@@ -32,7 +32,7 @@ func NewHealthService(appSystemCode string, appName string, appDescription strin
 		service.draftContentRWCheck(),
 		service.draftContentMethodeArticleMapperCheck(),
 		service.contentAPICheck(),
-		service.draftContentUppValidatorCheck(),
+		service.draftUppContentValidatorCheck(),
 	}
 	return service
 }
@@ -61,7 +61,7 @@ func (service *Service) draftContentRWCheck() health.Check {
 func (service *Service) draftContentMethodeArticleMapperCheck() health.Check {
 	return health.Check{
 		ID:               "check-draft-content-mapper",
-		BusinessImpact:   "Draft content cannot be provided for suggestions",
+		BusinessImpact:   "Draft methode content cannot be provided for suggestions",
 		Name:             "Check draft content mapper service",
 		PanicGuide:       "https://dewey.ft.com/draft-content-api.html",
 		Severity:         1,
@@ -70,14 +70,14 @@ func (service *Service) draftContentMethodeArticleMapperCheck() health.Check {
 	}
 }
 
-func (service *Service) draftContentUppValidatorCheck() health.Check {
+func (service *Service) draftUppContentValidatorCheck() health.Check {
 	return health.Check{
-		ID:               "check-draft-content-mapper",
-		BusinessImpact:   "Draft content cannot be provided for suggestions",
+		ID:               "check-draft-upp-content-validator",
+		BusinessImpact:   "Draft spark content cannot be provided for suggestions",
 		Name:             "Check upp-content-validator service",
 		PanicGuide:       "https://dewey.ft.com/draft-content-api.html",
 		Severity:         1,
-		TechnicalSummary: fmt.Sprintf("Draft content mapper is not available at %v", service.methodeMapper.Endpoint()),
+		TechnicalSummary: fmt.Sprintf("Draft upp content validator is not available at %v", service.sparkValidator.Endpoint()),
 		Checker:          externalServiceChecker(service.sparkValidator, "Draft content upp-content-validator"),
 	}
 }
