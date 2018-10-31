@@ -7,6 +7,7 @@ import (
 
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/service-status-go/gtg"
+	log "github.com/sirupsen/logrus"
 )
 
 type externalService interface {
@@ -97,6 +98,7 @@ func (service *Service) contentAPICheck() health.Check {
 func externalServiceChecker(s externalService, serviceName string) func() (string, error) {
 	return func() (string, error) {
 		if err := s.GTG(); err != nil {
+			log.WithField("url", s.Endpoint()).WithError(err).Error("External service healthcehck failed")
 			return fmt.Sprintf("%s is not good-to-go", serviceName), err
 		}
 		return fmt.Sprintf("%s is good-to-go", serviceName), nil
