@@ -45,11 +45,11 @@ Options:
 
     1. Either using curl:
 
-            curl http://localhost:8080/draft/content/b7b871f6-8a89-11e4-8e24-00144feabdc0 | json_pp
+            curl http://localhost:8080/drafts/content/b7b871f6-8a89-11e4-8e24-00144feabdc0 | json_pp
 
     1. Or using [httpie](https://github.com/jkbrzt/httpie):
 
-            http GET http://localhost:8080/draft/content/b7b871f6-8a89-11e4-8e24-00144feabdc0
+            http GET http://localhost:8080/drafts/content/b7b871f6-8a89-11e4-8e24-00144feabdc0
 
 ## Build and deployment
 
