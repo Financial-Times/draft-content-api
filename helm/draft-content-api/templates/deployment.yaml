@@ -17,6 +17,7 @@ spec:
         app: {{ .Values.service.name }}
         visualize: "true"
     spec:
+{{- if not .Values.eksCluster }}
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -27,6 +28,7 @@ spec:
                 values:
                 - "{{ .Values.service.name }}"
             topologyKey: "kubernetes.io/hostname"
+{{- end }}
       containers:
       - name: {{ .Values.service.name }}
         image: "{{ .Values.image.repository }}:{{ .Chart.Version }}"
