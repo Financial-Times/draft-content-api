@@ -10,6 +10,8 @@ jobs:
           GOPATH: /go
           CIRCLE_TEST_REPORTS: /tmp/test-results
           CIRCLE_COVERAGE_REPORT: /tmp/coverage-results
+    steps:
+      - checkout
       - run:
           name: Go Build
           command: go build -mod=readonly -v
