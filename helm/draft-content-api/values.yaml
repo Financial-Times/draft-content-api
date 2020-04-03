@@ -2,6 +2,9 @@ service:
   name: "" # The name of the service, should be defined in the specific app-configs folder.
   hasHealthcheck: "true"
   hasOpenAPI: "true"
+
+eksCluster: false
+
 replicaCount: 2
 image:
   repository: coco/draft-content-api
