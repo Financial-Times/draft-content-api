@@ -16,7 +16,7 @@ import (
 	"github.com/Financial-Times/go-ft-http/fthttp"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -195,7 +195,7 @@ func TestReadInvalidURL(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.NoError(t, err)
-	assert.Contains(t, string(body), "parse :: missing protocol scheme")
+	assert.Contains(t, string(body), "missing protocol scheme")
 	rw.AssertExpectations(t)
 }
 
