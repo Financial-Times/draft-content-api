@@ -31,7 +31,7 @@ func TestUnhappyGTG(t *testing.T) {
 func TestGTGInvalidURL(t *testing.T) {
 	svc := NewService(":#", fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 	err := svc.GTG()
-	assert.EqualError(t, err, "gtg request error: parse :: missing protocol scheme")
+	assert.Error(t, err, "Missing protocol scheme in gtg request")
 }
 
 func TestGTGConnectionError(t *testing.T) {
