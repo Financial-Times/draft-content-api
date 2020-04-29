@@ -15,7 +15,7 @@ Download the source code, dependencies and test dependencies:
         mkdir $GOPATH/src/github.com/Financial-Times/draft-content-api
         cd $GOPATH/src/github.com/Financial-Times
         git clone https://github.com/Financial-Times/draft-content-api.git
-        cd public-things-api && dep ensure -vendor-only
+        cd public-things-api
         go build .
 
 ## Running locally
