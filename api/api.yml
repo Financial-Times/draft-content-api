@@ -100,7 +100,7 @@ paths:
                   severity: 1
                   businessImpact: Impossible to serve content through PAC
                   technicalSummary: Content API is not available at http://test.api.ft.com/content
-                  panicGuide: https://dewey.ft.com/draft-content-api.html
+                  panicGuide: https://runbooks.in.ft.com/draft-content-api
                   checkOutput: gtg returned a non-200 HTTP status
                   lastUpdated: 2017-08-03T10:44:32.324709638+01:00
               ok: true

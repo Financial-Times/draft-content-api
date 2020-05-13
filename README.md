@@ -11,11 +11,10 @@ At the moment the service is a simple proxy to UPP Content API.
 
 Download the source code, dependencies and test dependencies:
 
-        curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
         mkdir $GOPATH/src/github.com/Financial-Times/draft-content-api
         cd $GOPATH/src/github.com/Financial-Times
         git clone https://github.com/Financial-Times/draft-content-api.git
-        cd public-things-api && dep ensure -vendor-only
+        cd public-things-api
         go build .
 
 ## Running locally
@@ -45,11 +44,11 @@ Options:
 
     1. Either using curl:
 
-            curl http://localhost:8080/draft/content/b7b871f6-8a89-11e4-8e24-00144feabdc0 | json_pp
+            curl http://localhost:8080/drafts/content/b7b871f6-8a89-11e4-8e24-00144feabdc0 | json_pp
 
     1. Or using [httpie](https://github.com/jkbrzt/httpie):
 
-            http GET http://localhost:8080/draft/content/b7b871f6-8a89-11e4-8e24-00144feabdc0
+            http GET http://localhost:8080/drafts/content/b7b871f6-8a89-11e4-8e24-00144feabdc0
 
 ## Build and deployment
 
