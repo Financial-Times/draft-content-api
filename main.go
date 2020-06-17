@@ -12,7 +12,7 @@ import (
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/husobee/vestigo"
-	"github.com/jawher/mow.cli"
+	cli "github.com/jawher/mow.cli"
 	"github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
 )
@@ -71,6 +71,13 @@ func main() {
 		EnvVar: "DRAFT_CONTENT_UCV_ENDPOINT",
 	})
 
+	ucpvEndpoint := app.String(cli.StringOpt{
+		Name:   "ucpv-endpoint",
+		Value:  "http://localhost:9877",
+		Desc:   "Endpoint for mapping Spark/CCT content placeholder draft content",
+		EnvVar: "DRAFT_CONTENT_PLACEHOLDER_UCV_ENDPOINT",
+	})
+
 	contentEndpoint := app.String(cli.StringOpt{
 		Name:   "content-endpoint",
 		Value:  "http://test.api.ft.com/content",
@@ -110,12 +117,14 @@ func main() {
 
 		mamService := content.NewDraftContentMapperService(*mamEndpoint, httpClient)
 		ucvService := content.NewSparkDraftContentMapperService(*ucvEndpoint, httpClient)
+		ucpvService := content.NewSparkDraftContentMapperService(*ucpvEndpoint, httpClient)
 
 		originIdMapping := map[string]content.DraftContentMapper{
 			"methode-web-pub": mamService,
 		}
 		contentTypeMapping := map[string]content.DraftContentMapper{
-			"application/vnd.ft-upp-article+json": ucvService,
+			"application/vnd.ft-upp-article+json":             ucvService,
+			"application/vnd.ft-upp-content-placeholder+json": ucpvService,
 		}
 
 		resolver := content.NewDraftContentMapperResolver(originIdMapping, contentTypeMapping)

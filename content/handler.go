@@ -14,7 +14,7 @@ import (
 
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,8 +33,9 @@ var (
 	}
 
 	allowedContentTypes = map[string]struct{}{
-		"application/json":                    {},
-		"application/vnd.ft-upp-article+json": {},
+		"application/json":                                {},
+		"application/vnd.ft-upp-article+json":             {},
+		"application/vnd.ft-upp-content-placeholder+json": {},
 	}
 )
 
