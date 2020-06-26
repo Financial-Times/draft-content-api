@@ -18,8 +18,9 @@ func TestHappyHealthCheck(t *testing.T) {
 	draftContentMapper := mockHealthyExternalService()
 	cAPI := mockHealthyExternalService()
 	ucv := mockHealthyExternalService()
+	draftContentPlaceholderValidator := mockHealthyExternalService()
 
-	h := NewHealthService("", "", "", draftContentRW, draftContentMapper, cAPI, ucv)
+	h := NewHealthService("", "", "", draftContentRW, draftContentMapper, cAPI, ucv, draftContentPlaceholderValidator)
 
 	req := httptest.NewRequest("GET", "/__health", nil)
 	w := httptest.NewRecorder()
@@ -31,7 +32,7 @@ func TestHappyHealthCheck(t *testing.T) {
 	hcBody := make(map[string]interface{})
 	err := json.NewDecoder(resp.Body).Decode(&hcBody)
 	assert.NoError(t, err)
-	assert.Len(t, hcBody["checks"], 4)
+	assert.Len(t, hcBody["checks"], 5)
 	assert.True(t, hcBody["ok"].(bool))
 
 	checks := hcBody["checks"].([]interface{})
@@ -52,11 +53,13 @@ func TestUnhappyHealthCheck(t *testing.T) {
 	draftContentRW := mockHealthyExternalService()
 	draftContentMapper := mockHealthyExternalService()
 	draftContentValidator := mockHealthyExternalService()
+	draftContentPlaceholderValidator := mockHealthyExternalService()
+
 	cAPI := new(ExternalServiceMock)
 	cAPI.On("GTG").Return(errors.New("computer says no"))
 	cAPI.On("Endpoint").Return("http://cool.api.ft.com/content")
 
-	h := NewHealthService("", "", "", draftContentRW, draftContentMapper, cAPI, draftContentValidator)
+	h := NewHealthService("", "", "", draftContentRW, draftContentMapper, cAPI, draftContentValidator, draftContentPlaceholderValidator)
 
 	req := httptest.NewRequest("GET", "/__health", nil)
 	w := httptest.NewRecorder()
@@ -68,7 +71,7 @@ func TestUnhappyHealthCheck(t *testing.T) {
 	hcBody := make(map[string]interface{})
 	err := json.NewDecoder(resp.Body).Decode(&hcBody)
 	assert.NoError(t, err)
-	assert.Len(t, hcBody["checks"], 4)
+	assert.Len(t, hcBody["checks"], 5)
 	assert.False(t, hcBody["ok"].(bool))
 
 	checks := hcBody["checks"].([]interface{})
@@ -89,9 +92,11 @@ func TestHappyGTG(t *testing.T) {
 	draftContentRW := mockHealthyExternalService()
 	draftContentMapper := mockHealthyExternalService()
 	draftContentValidator := mockHealthyExternalService()
+	draftContentPlaceholderValidator := mockHealthyExternalService()
+
 	cAPI := mockHealthyExternalService()
 
-	h := NewHealthService("", "", "", draftContentRW, draftContentMapper, cAPI, draftContentValidator)
+	h := NewHealthService("", "", "", draftContentRW, draftContentMapper, cAPI, draftContentValidator, draftContentPlaceholderValidator)
 
 	req := httptest.NewRequest("GET", "/__gtg", nil)
 	w := httptest.NewRecorder()
@@ -108,11 +113,12 @@ func TestUnhappyGTG(t *testing.T) {
 	draftContentRW := mockHealthyExternalService()
 	draftContentMapper := mockHealthyExternalService()
 	draftContentValidator := mockHealthyExternalService()
+	draftContentPlaceholderValidator := mockHealthyExternalService()
 
 	cAPI := new(ExternalServiceMock)
 	cAPI.On("GTG").Return(errors.New("computer says no"))
 	cAPI.On("Endpoint").Return("http://cool.api.ft.com/content")
-	h := NewHealthService("", "", "", draftContentRW, draftContentMapper, cAPI, draftContentValidator)
+	h := NewHealthService("", "", "", draftContentRW, draftContentMapper, cAPI, draftContentValidator, draftContentPlaceholderValidator)
 
 	req := httptest.NewRequest("GET", "/__gtg", nil)
 	w := httptest.NewRecorder()

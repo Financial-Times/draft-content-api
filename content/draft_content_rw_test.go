@@ -43,9 +43,9 @@ func TestReadContent(t *testing.T) {
 	defer rwServer.Close()
 
 	mapper := mockContentMapper(t, testLastModified, testDraftRef)
-	mapper.On("MapNativeContent", mock.Anything, contentUUID, mock.Anything, "application/json").Return(ioutil.NopCloser(bytes.NewReader(mappedContent)), nil)
+	mapper.On("MapNativeContent", mock.Anything, contentUUID, mock.Anything, contentType).Return(ioutil.NopCloser(bytes.NewReader(mappedContent)), nil)
 
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapper, testSystemId))
+	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapper))
 
 	rw := NewDraftContentRWService(rwServer.URL, resolver, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
@@ -68,7 +68,7 @@ func TestReadContentNotFound(t *testing.T) {
 
 	mapper := mockContentMapper(t, "", "")
 
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapper, testSystemId))
+	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapper))
 	rw := NewDraftContentRWService(rwServer.URL, resolver, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
 	body, err := rw.Read(ctx, contentUUID)
@@ -86,7 +86,7 @@ func TestReadContentError(t *testing.T) {
 	defer rwServer.Close()
 
 	mapper := mockContentMapper(t, "", "")
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapper, testSystemId))
+	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapper))
 
 	rw := NewDraftContentRWService(rwServer.URL, resolver, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
@@ -106,9 +106,9 @@ func TestReadContentMapperError(t *testing.T) {
 	defer rwServer.Close()
 
 	mapper := mockContentMapper(t, testLastModified, testDraftRef)
-	mapper.On("MapNativeContent", mock.Anything, mock.AnythingOfType("string"), mock.Anything, "application/json").Return(nil, errors.New("test mapper error"))
+	mapper.On("MapNativeContent", mock.Anything, mock.AnythingOfType("string"), mock.Anything, contentType).Return(nil, errors.New("test mapper error"))
 
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapper, testSystemId))
+	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapper))
 	rw := NewDraftContentRWService(rwServer.URL, resolver, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
 	body, err := rw.Read(ctx, contentUUID)
@@ -127,8 +127,8 @@ func TestReadContentMapperUnprocessableEntityError(t *testing.T) {
 	defer rwServer.Close()
 
 	mapper := mockContentMapper(t, testLastModified, testDraftRef)
-	mapper.On("MapNativeContent", mock.Anything, mock.AnythingOfType("string"), mock.Anything, "application/json").Return(nil, MapperError{http.StatusUnprocessableEntity, "test mapper error"})
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapper, testSystemId))
+	mapper.On("MapNativeContent", mock.Anything, mock.AnythingOfType("string"), mock.Anything, contentType).Return(nil, MapperError{http.StatusUnprocessableEntity, "test mapper error"})
+	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapper))
 
 	rw := NewDraftContentRWService(rwServer.URL, resolver, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
@@ -203,7 +203,7 @@ func mockReadFromGenericRW(t *testing.T, status int, contentUUID string, systemI
 		assert.Equal(t, testTID, r.Header.Get(tidutils.TransactionIDHeader), tidutils.TransactionIDHeader)
 
 		w.Header().Add(originSystemIdHeader, systemID)
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", contentType)
 		w.Header().Set("Write-Request-Id", writeRef)
 		w.Header().Set("Last-Modified-RFC3339", lastModified)
 		w.WriteHeader(status)

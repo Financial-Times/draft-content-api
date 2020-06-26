@@ -21,7 +21,7 @@ Download the source code, dependencies and test dependencies:
 
 1. Run the tests and install the binary:
 
-        go test ./...
+        go test -race ./... -v
         go install
 
 2. Run the binary (using the `help` flag to see the available optional arguments):
@@ -104,4 +104,4 @@ The `/__health` and `/__gtg` check the availability of:
 
 ## Change/Rotate sealed secrets
 
-Please reffer to documentation in [pac-global-sealed-secrets-eks](https://github.com/Financial-Times/pac-global-sealed-secrets-eks/blob/master/README.md). Here are explained details how to create new, change existing sealed secrets.
+Please refer to documentation in [pac-global-sealed-secrets-eks](https://github.com/Financial-Times/pac-global-sealed-secrets-eks/blob/master/README.md). Here are explained details how to create new, change existing sealed secrets.

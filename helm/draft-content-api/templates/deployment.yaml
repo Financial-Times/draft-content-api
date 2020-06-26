@@ -21,7 +21,6 @@ spec:
         app: {{ .Values.service.name }}
         visualize: "true"
     spec:
-{{- if not .Values.eksCluster }}
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -32,7 +31,6 @@ spec:
                 values:
                 - "{{ .Values.service.name }}"
             topologyKey: "kubernetes.io/hostname"
-{{- end }}
       containers:
       - name: {{ .Values.service.name }}
         image: "{{ .Values.image.repository }}:{{ .Chart.Version }}"
@@ -40,12 +38,17 @@ spec:
         env:
         - name: DRAFT_CONTENT_RW_ENDPOINT
           value: "http://generic-rw-aurora:8080"
-        - name: DRAFT_CONTENT_MAM_ENDPOINT
-          value: "http://methode-article-mapper:8080"
-        - name: DRAFT_CONTENT_UCV_ENDPOINT
-          value: "http://upp-content-validator:8080"
-        - name: DRAFT_CONTENT_PLACEHOLDER_UCV_ENDPOINT
-          value: "http://upp-content-placeholder-validator:8080"
+        - name: DRAFT_CONTENT_MAM_CONFIG
+          value: "http://methode-article-mapper:8080|{{ .Values.methodeCT }}"
+        - name: DRAFT_CONTENT_UCV_CONFIG
+          value: "http://upp-content-validator:8080|{{ .Values.articleCT }}"
+        - name: DRAFT_CONTENT_PLACEHOLDER_UCV_CONFIG
+          value: "http://upp-content-placeholder-validator:8080|{{ .Values.CPHCT }}"
+          - name: ORIGIN_IDS
+          valueFrom:
+            configMapKeyRef:
+              name: draft-content-api-config
+              key: originID
         - name: CONTENT_ENDPOINT
           valueFrom:
             configMapKeyRef:

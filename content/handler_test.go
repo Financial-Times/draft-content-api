@@ -21,9 +21,15 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-const testAPIKey = "testAPIKey"
-const testTID = "test_tid"
-const testTimeout = 8 * time.Second
+const (
+	originIDMethodeTest = "methode-web-pub"
+	originIDcctTest     = "cct"
+	contentType         = "application/json"
+	contentTypeArticle  = "application/vnd.ft-upp-article+json"
+	testAPIKey          = "testAPIKey"
+	testTID             = "test_tid"
+	testTimeout         = 8 * time.Second
+)
 
 type mockDraftContentRW struct {
 	mock.Mock
@@ -228,8 +234,16 @@ func TestWriteMethodeNativeContent(t *testing.T) {
 	draftBody := "{\"foo\":\"bar\"}"
 	headers := map[string]string{
 		tidutils.TransactionIDHeader: testTID,
-		originSystemIdHeader:         "methode-web-pub",
-		contentTypeHeader:            "application/json",
+		originSystemIdHeader:         originIDMethodeTest,
+		contentTypeHeader:            contentType,
+	}
+
+	AllowedOriginSystemIdValues = map[string]struct{}{
+		originIDMethodeTest: {},
+	}
+
+	AllowedContentTypes = map[string]struct{}{
+		contentType: {},
 	}
 
 	rw := mockDraftContentRW{}
@@ -242,8 +256,8 @@ func TestWriteMethodeNativeContent(t *testing.T) {
 
 	req := httptest.NewRequest("PUT", fmt.Sprintf("http://api.ft.com/drafts/nativecontent/%s", contentUUID), strings.NewReader(draftBody))
 	req.Header.Set(tidutils.TransactionIDHeader, testTID)
-	req.Header.Set(originSystemIdHeader, "methode-web-pub")
-	req.Header.Set(contentTypeHeader, "application/json")
+	req.Header.Set(originSystemIdHeader, originIDMethodeTest)
+	req.Header.Set(contentTypeHeader, contentType)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -260,8 +274,16 @@ func TestWriteSparkNativeContent(t *testing.T) {
 	draftBody := "{\"foo\":\"bar\"}"
 	headers := map[string]string{
 		tidutils.TransactionIDHeader: testTID,
-		originSystemIdHeader:         "cct",
-		contentTypeHeader:            "application/vnd.ft-upp-article+json; version=1.0; charset=utf-8",
+		originSystemIdHeader:         originIDcctTest,
+		contentTypeHeader:            contentTypeArticle + "; version=1.0; charset=utf-8",
+	}
+
+	AllowedOriginSystemIdValues = map[string]struct{}{
+		originIDcctTest: {},
+	}
+
+	AllowedContentTypes = map[string]struct{}{
+		contentTypeArticle: {},
 	}
 
 	rw := mockDraftContentRW{}
@@ -274,7 +296,7 @@ func TestWriteSparkNativeContent(t *testing.T) {
 
 	req := httptest.NewRequest("PUT", fmt.Sprintf("http://api.ft.com/drafts/nativecontent/%s", contentUUID), strings.NewReader(draftBody))
 	req.Header.Set(tidutils.TransactionIDHeader, testTID)
-	req.Header.Set(originSystemIdHeader, "cct")
+	req.Header.Set(originSystemIdHeader, originIDcctTest)
 	req.Header.Set(contentTypeHeader, "application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
 	w := httptest.NewRecorder()
 
@@ -296,7 +318,7 @@ func TestWriteNativeContentInvalidUUID(t *testing.T) {
 
 	req := httptest.NewRequest("PUT", "http://api.ft.com/drafts/nativecontent/foo", strings.NewReader(draftBody))
 	req.Header.Set(tidutils.TransactionIDHeader, testTID)
-	req.Header.Set(originSystemIdHeader, "methode-web-pub")
+	req.Header.Set(originSystemIdHeader, originIDMethodeTest)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -340,7 +362,7 @@ func TestWriteNativeContentInvalidOriginSystemId(t *testing.T) {
 	req := httptest.NewRequest("PUT", fmt.Sprintf("http://api.ft.com/drafts/nativecontent/%s", contentUUID), strings.NewReader(draftBody))
 	req.Header.Set(tidutils.TransactionIDHeader, testTID)
 	req.Header.Set(originSystemIdHeader, "wordpress")
-	req.Header.Set(contentTypeHeader, "application/json")
+	req.Header.Set(contentTypeHeader, contentType)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -356,13 +378,21 @@ func TestWriteNativeContentInvalidContentType(t *testing.T) {
 	contentUUID := uuid.NewV4().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
+	AllowedOriginSystemIdValues = map[string]struct{}{
+		originIDcctTest: {},
+	}
+
+	AllowedContentTypes = map[string]struct{}{
+		contentTypeArticle: {},
+	}
+
 	h := NewHandler(nil, nil, testTimeout)
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
 	req := httptest.NewRequest("PUT", fmt.Sprintf("http://api.ft.com/drafts/nativecontent/%s", contentUUID), strings.NewReader(draftBody))
 	req.Header.Set(tidutils.TransactionIDHeader, testTID)
-	req.Header.Set(originSystemIdHeader, "cct")
+	req.Header.Set(originSystemIdHeader, originIDcctTest)
 	req.Header.Set(contentTypeHeader, "application/xml")
 	w := httptest.NewRecorder()
 
@@ -379,6 +409,14 @@ func TestWriteNativeContentWriteError(t *testing.T) {
 	contentUUID := uuid.NewV4().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
+	AllowedOriginSystemIdValues = map[string]struct{}{
+		originIDMethodeTest: {},
+	}
+
+	AllowedContentTypes = map[string]struct{}{
+		contentType: {},
+	}
+
 	rw := mockDraftContentRW{}
 	rw.On("Write", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test error from writer"))
 
@@ -388,8 +426,8 @@ func TestWriteNativeContentWriteError(t *testing.T) {
 
 	req := httptest.NewRequest("PUT", fmt.Sprintf("http://api.ft.com/drafts/nativecontent/%s", contentUUID), strings.NewReader(draftBody))
 	req.Header.Set(tidutils.TransactionIDHeader, testTID)
-	req.Header.Set(originSystemIdHeader, "methode-web-pub")
-	req.Header.Set(contentTypeHeader, "application/json")
+	req.Header.Set(originSystemIdHeader, originIDMethodeTest)
+	req.Header.Set(contentTypeHeader, contentType)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)

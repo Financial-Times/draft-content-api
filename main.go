@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Financial-Times/api-endpoint"
@@ -17,7 +18,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const appDescription = "PAC Draft Content"
+const (
+	appDescription = "PAC Draft Content"
+	methodeDC      = "methode"
+	articleDC      = "article"
+	cphDC          = "CPH"
+)
+
+type draftConfig struct {
+	draftContentEndpoint string
+	contentType          string
+}
 
 func main() {
 	app := cli.App("draft-content-api", appDescription)
@@ -57,27 +68,6 @@ func main() {
 		EnvVar: "DRAFT_CONTENT_RW_ENDPOINT",
 	})
 
-	mamEndpoint := app.String(cli.StringOpt{
-		Name:   "mam-endpoint",
-		Value:  "http://localhost:11070",
-		Desc:   "Endpoint for mapping Methode article draft content",
-		EnvVar: "DRAFT_CONTENT_MAM_ENDPOINT",
-	})
-
-	ucvEndpoint := app.String(cli.StringOpt{
-		Name:   "ucv-endpoint",
-		Value:  "http://localhost:9876",
-		Desc:   "Endpoint for mapping Spark/CCT article draft content",
-		EnvVar: "DRAFT_CONTENT_UCV_ENDPOINT",
-	})
-
-	ucpvEndpoint := app.String(cli.StringOpt{
-		Name:   "ucpv-endpoint",
-		Value:  "http://localhost:9877",
-		Desc:   "Endpoint for mapping Spark/CCT content placeholder draft content",
-		EnvVar: "DRAFT_CONTENT_PLACEHOLDER_UCV_ENDPOINT",
-	})
-
 	contentEndpoint := app.String(cli.StringOpt{
 		Name:   "content-endpoint",
 		Value:  "http://test.api.ft.com/content",
@@ -99,6 +89,20 @@ func main() {
 		EnvVar: "API_YML",
 	})
 
+	DraftConfig := app.Strings(cli.StringsOpt{
+		Name:   "origin-IDs",
+		Value:  []string{""},
+		Desc:   "draft content url and its content type headers",
+		EnvVar: "DRAFT_CONFIG",
+	})
+
+	originIDs := app.String(cli.StringOpt{
+		Name:   "origin-IDs",
+		Value:  "methode-web-pub|cct|spark-lists|spark",
+		Desc:   "allowed originID header",
+		EnvVar: "ORIGIN_IDS",
+	})
+
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetLevel(log.InfoLevel)
 	log.Infof("[Startup] %v is starting", *appSystemCode)
@@ -115,27 +119,30 @@ func main() {
 
 		httpClient := fthttp.NewClient(timeout, "PAC", *appSystemCode)
 
-		mamService := content.NewDraftContentMapperService(*mamEndpoint, httpClient)
-		ucvService := content.NewSparkDraftContentMapperService(*ucvEndpoint, httpClient)
-		ucpvService := content.NewSparkDraftContentMapperService(*ucpvEndpoint, httpClient)
+		// note: new OriginID can be added, modifying just value.yml, no code changes involved
+		content.AllowedOriginSystemIdValues = getOriginID(*originIDs)
 
-		originIdMapping := map[string]content.DraftContentMapper{
-			"methode-web-pub": mamService,
-		}
+		drafts := getDraftContentMapper(*DraftConfig)
+		mamService := content.NewDraftContentMapperService(drafts[methodeDC].draftContentEndpoint, httpClient)
+		ucvService := content.NewSparkDraftContentMapperService(drafts[articleDC].draftContentEndpoint, httpClient)
+		ucphvService := content.NewSparkDraftContentMapperService(drafts[cphDC].draftContentEndpoint, httpClient)
+
 		contentTypeMapping := map[string]content.DraftContentMapper{
-			"application/vnd.ft-upp-article+json":             ucvService,
-			"application/vnd.ft-upp-content-placeholder+json": ucpvService,
+			drafts[methodeDC].contentType: mamService,
+			drafts[articleDC].contentType: ucvService,
+			drafts[cphDC].contentType:     ucphvService,
 		}
 
-		resolver := content.NewDraftContentMapperResolver(originIdMapping, contentTypeMapping)
-
+		resolver := content.NewDraftContentMapperResolver(contentTypeMapping)
 		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint, resolver, httpClient)
+
+		content.AllowedContentTypes = getAllowedContentType(drafts)
 
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey, httpClient)
 
 		contentHandler := content.NewHandler(cAPI, draftContentRWService, timeout)
 		healthService := health.NewHealthService(*appSystemCode, *appName,
-			appDescription, draftContentRWService, mamService, cAPI, ucvService)
+			appDescription, draftContentRWService, mamService, cAPI, ucvService, ucphvService)
 		serveEndpoints(*port, apiYml, contentHandler, healthService)
 	}
 	err := app.Run(os.Args)
@@ -174,4 +181,44 @@ func serveEndpoints(port string, apiYml *string, contentHandler *content.Handler
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Unable to start: %v", err)
 	}
+}
+
+func getOriginID(s string) map[string]struct{} {
+
+	retVal := make(map[string]struct{})
+	originIDs := strings.Split(s, "|")
+	if len(originIDs) > 0 {
+		for _, oID := range originIDs {
+			retVal[oID] = struct{}{}
+		}
+	}
+
+	return retVal
+}
+
+func getDraftContentMapper(draftsConfigs []string) map[string]draftConfig {
+
+	retVal := make(map[string]draftConfig, 0)
+	for _, dc := range draftsConfigs {
+		c := strings.Split(dc, "|")
+		if len(c) != 3 {
+			log.Warn("error getting draft config %s", c)
+		}
+		retVal[c[0]] = draftConfig{
+			draftContentEndpoint: c[1],
+			contentType:          c[2],
+		}
+	}
+
+	return retVal
+}
+
+func getAllowedContentType(drafts map[string]draftConfig) map[string]struct{} {
+
+	retVal := map[string]struct{}{}
+	for _, d := range drafts {
+		retVal[d.contentType] = struct{}{}
+	}
+
+	return retVal
 }

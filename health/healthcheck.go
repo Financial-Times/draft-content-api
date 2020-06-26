@@ -17,15 +17,16 @@ type externalService interface {
 
 type Service struct {
 	health.HealthCheck
-	uppContentAPI  externalService
-	draftContentRW externalService
-	methodeMapper  externalService
-	sparkValidator externalService
+	uppContentAPI     externalService
+	draftContentRW    externalService
+	methodeMapper     externalService
+	sparkValidator    externalService
+	sparkCPHValidator externalService
 }
 
 func NewHealthService(appSystemCode string, appName string, appDescription string,
-	draftContent externalService, mam externalService, capi externalService, ucv externalService) *Service {
-	service := &Service{draftContentRW: draftContent, methodeMapper: mam, uppContentAPI: capi, sparkValidator: ucv}
+	draftContent externalService, mam externalService, capi externalService, ucv externalService, ucphv externalService) *Service {
+	service := &Service{draftContentRW: draftContent, methodeMapper: mam, uppContentAPI: capi, sparkValidator: ucv, sparkCPHValidator: ucphv}
 	service.SystemCode = appSystemCode
 	service.Name = appName
 	service.Description = appDescription
@@ -34,6 +35,7 @@ func NewHealthService(appSystemCode string, appName string, appDescription strin
 		service.draftContentMethodeArticleMapperCheck(),
 		service.contentAPICheck(),
 		service.draftUppContentValidatorCheck(),
+		service.draftUppContentPlaceholderValidatorCheck(),
 	}
 	return service
 }
@@ -80,6 +82,18 @@ func (service *Service) draftUppContentValidatorCheck() health.Check {
 		Severity:         1,
 		TechnicalSummary: fmt.Sprintf("Draft upp content validator is not available at %v", service.sparkValidator.Endpoint()),
 		Checker:          externalServiceChecker(service.sparkValidator, "Draft content upp-content-validator"),
+	}
+}
+
+func (service *Service) draftUppContentPlaceholderValidatorCheck() health.Check {
+	return health.Check{
+		ID:               "check-draft-upp-content-placeholder-validator",
+		BusinessImpact:   "Draft spark content placeholder cannot be provided for suggestions",
+		Name:             "Check upp-content-validator service",
+		PanicGuide:       "https://runbooks.in.ft.com/draft-content-api",
+		Severity:         1,
+		TechnicalSummary: fmt.Sprintf("Draft upp content placeholder validator is not available at %v", service.sparkCPHValidator.Endpoint()),
+		Checker:          externalServiceChecker(service.sparkValidator, "Draft content upp-content-placeholder-validator"),
 	}
 }
 

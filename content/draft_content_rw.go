@@ -45,6 +45,7 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
 	readLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
 
+	// note : retrieves content from generic-Aurora-rw, the endpoint returns the same unaltered data (postman)
 	resp, err := rw.readNativeContent(ctx, contentUUID)
 	if err != nil {
 		readLog.WithError(err).Error("Error making the HTTP request to content RW")
@@ -58,14 +59,16 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 		nativeContent, err = rw.constructNativeDocumentForMapper(ctx, resp.Body, resp.Header.Get("Last-Modified-RFC3339"), resp.Header.Get("Write-Request-Id"))
 
 		if err == nil {
-			contentType := resp.Header.Get("Content-Type")
-			mapper, resolverErr := rw.resolver.MapperForOriginIdAndContentType(resp.Header.Get("X-Origin-System-Id"), contentType)
+			// note aurora returns the right header for CPH (application/vnd.ft-upp-content-placeholder+json).
+			contentType := resp.Header.Get(contentTypeHeader)
+			mapper, resolverErr := rw.resolver.MapperForOriginIdAndContentType(contentType)
 
 			if resolverErr != nil {
 				readLog.WithError(resolverErr).Error("Unable to map content")
 				return nil, resolverErr
 			}
 
+			// Note: validates content to upp-content-placeholder-validator
 			mappedContent, err = mapper.MapNativeContent(ctx, contentUUID, nativeContent, contentType)
 
 			if err != nil {
@@ -118,7 +121,7 @@ func (rw *draftContentRW) constructNativeDocumentForMapper(ctx context.Context, 
 		readLog.WithError(err).Error("unable to unmarshal native content")
 		return nil, err
 	}
-
+	// note : this two additions break CPH validation !
 	rawNativeDoc["lastModified"] = lastModified
 	rawNativeDoc["draftReference"] = writeRef
 
