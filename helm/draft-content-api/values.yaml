@@ -5,15 +5,10 @@ service:
 
 originID: "methode-web-pub|cct|spark-lists|spark"
 
-# test: check whether is able to load it as var env
-DraftConfig:
-  methode: "methode|http://methode-article-mapper:8080|application/json"
-  article: "article|http://upp-content-validator:8080|application/vnd.ft-upp-article+json"
-  CPH: "CPH|http://upp-content-placeholder-validator:8080|application/vnd.ft-upp-content-placeholder+json"
-
-#methodeDraftConfig: "http://methode-article-mapper:8080|application/json"
-#articleDraftConfig: "http://upp-content-validator:8080|application/vnd.ft-upp-article+json"
-#CPHDraftConfig: "http://upp-content-placeholder-validator:8080|application/vnd.ft-upp-content-placeholder+json"
+allowedContentTypes:
+  methodeContentType : "application/json"
+  sparkArticleContentType: "application/vnd.ft-upp-article+json"
+  sparkCPHContentType: "application/vnd.ft-upp-content-placeholder+json"
 
 eksCluster: false
 

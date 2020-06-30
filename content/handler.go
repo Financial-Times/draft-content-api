@@ -27,7 +27,7 @@ const (
 )
 
 var (
-	AllowedOriginSystemIdValues = map[string]struct{}{}
+	AllowedOriginSystemIDValues = map[string]struct{}{}
 	AllowedContentTypes         = map[string]struct{}{}
 )
 
@@ -216,7 +216,7 @@ func validateUUID(u string) error {
 
 func validateOrigin(id string) (string, error) {
 	var err error
-	if _, found := AllowedOriginSystemIdValues[id]; !found {
+	if _, found := AllowedOriginSystemIDValues[id]; !found {
 		err = errors.New(fmt.Sprintf("unsupported or missing value for X-Origin-System-Id: %v", id))
 	}
 

@@ -20,15 +20,7 @@ import (
 
 const (
 	appDescription = "PAC Draft Content"
-	methodeDC      = "methode"
-	articleDC      = "article"
-	cphDC          = "CPH"
 )
-
-type draftConfig struct {
-	draftContentEndpoint string
-	contentType          string
-}
 
 func main() {
 	app := cli.App("draft-content-api", appDescription)
@@ -68,6 +60,27 @@ func main() {
 		EnvVar: "DRAFT_CONTENT_RW_ENDPOINT",
 	})
 
+	mamEndpoint := app.String(cli.StringOpt{
+		Name:   "mam-endpoint",
+		Value:  "http://localhost:11070",
+		Desc:   "Endpoint for mapping Methode article draft content",
+		EnvVar: "DRAFT_CONTENT_MAM_ENDPOINT",
+	})
+
+	ucvEndpoint := app.String(cli.StringOpt{
+		Name:   "ucv-endpoint",
+		Value:  "http://localhost:9876",
+		Desc:   "Endpoint for mapping Spark article draft content",
+		EnvVar: "DRAFT_CONTENT_UCV_ENDPOINT",
+	})
+
+	ucphvEndpoint := app.String(cli.StringOpt{
+		Name:   "ucphv-endpoint",
+		Value:  "http://localhost:9877",
+		Desc:   "Endpoint for mapping Spark content placeholder draft content",
+		EnvVar: "DRAFT_CONTENT_PLACEHOLDER_UCV_ENDPOINT",
+	})
+
 	contentEndpoint := app.String(cli.StringOpt{
 		Name:   "content-endpoint",
 		Value:  "http://test.api.ft.com/content",
@@ -84,23 +97,37 @@ func main() {
 
 	apiYml := app.String(cli.StringOpt{
 		Name:   "api-yml",
-		Value:  "./api.yml",
+		Value:  "./api/api.yml",
 		Desc:   "Location of the API Swagger YML file.",
 		EnvVar: "API_YML",
-	})
-
-	DraftConfig := app.Strings(cli.StringsOpt{
-		Name:   "origin-IDs",
-		Value:  []string{""},
-		Desc:   "draft content url and its content type headers",
-		EnvVar: "DRAFT_CONFIG",
 	})
 
 	originIDs := app.String(cli.StringOpt{
 		Name:   "origin-IDs",
 		Value:  "methode-web-pub|cct|spark-lists|spark",
-		Desc:   "allowed originID header",
+		Desc:   "Allowed originID header",
 		EnvVar: "ORIGIN_IDS",
+	})
+
+	methodeContentType := app.String(cli.StringOpt{
+		Name:   "methode-content-type",
+		Value:  "application/json",
+		Desc:   "Methode content type header",
+		EnvVar: "METHODE_CONTENT_TYPE",
+	})
+
+	sparkArticleContentType := app.String(cli.StringOpt{
+		Name:   "spark-article-content-type",
+		Value:  "application/vnd.ft-upp-article+json",
+		Desc:   "Spark article content type header",
+		EnvVar: "SPARK_ARTICLE_CONTENT_TYPE",
+	})
+
+	sparkCPHContentType := app.String(cli.StringOpt{
+		Name:   "spark-CPH-content-type",
+		Value:  "application/vnd.ft-upp-content-placeholder+json",
+		Desc:   "Spark content placeholder type header",
+		EnvVar: "SPARK_CPH_CONTENT_TYPE",
 	})
 
 	log.SetFormatter(&log.JSONFormatter{})
@@ -119,24 +146,22 @@ func main() {
 
 		httpClient := fthttp.NewClient(timeout, "PAC", *appSystemCode)
 
-		// note: new OriginID can be added, modifying just value.yml, no code changes involved
-		content.AllowedOriginSystemIdValues = getOriginID(*originIDs)
+		content.AllowedOriginSystemIDValues = getOriginID(*originIDs)
 
-		drafts := getDraftContentMapper(*DraftConfig)
-		mamService := content.NewDraftContentMapperService(drafts[methodeDC].draftContentEndpoint, httpClient)
-		ucvService := content.NewSparkDraftContentMapperService(drafts[articleDC].draftContentEndpoint, httpClient)
-		ucphvService := content.NewSparkDraftContentMapperService(drafts[cphDC].draftContentEndpoint, httpClient)
+		mamService := content.NewDraftContentMapperService(*mamEndpoint, httpClient)
+		ucvService := content.NewSparkDraftContentMapperService(*ucvEndpoint, httpClient)
+		ucphvService := content.NewSparkDraftContentMapperService(*ucphvEndpoint, httpClient)
 
 		contentTypeMapping := map[string]content.DraftContentMapper{
-			drafts[methodeDC].contentType: mamService,
-			drafts[articleDC].contentType: ucvService,
-			drafts[cphDC].contentType:     ucphvService,
+			*methodeContentType:      mamService,
+			*sparkArticleContentType: ucvService,
+			*sparkCPHContentType:     ucphvService,
 		}
 
 		resolver := content.NewDraftContentMapperResolver(contentTypeMapping)
 		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint, resolver, httpClient)
 
-		content.AllowedContentTypes = getAllowedContentType(drafts)
+		content.AllowedContentTypes = getAllowedContentType(*methodeContentType, *sparkArticleContentType, *sparkCPHContentType)
 
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey, httpClient)
 
@@ -196,28 +221,11 @@ func getOriginID(s string) map[string]struct{} {
 	return retVal
 }
 
-func getDraftContentMapper(draftsConfigs []string) map[string]draftConfig {
-
-	retVal := make(map[string]draftConfig, 0)
-	for _, dc := range draftsConfigs {
-		c := strings.Split(dc, "|")
-		if len(c) != 3 {
-			log.Warn("error getting draft config %s", c)
-		}
-		retVal[c[0]] = draftConfig{
-			draftContentEndpoint: c[1],
-			contentType:          c[2],
-		}
-	}
-
-	return retVal
-}
-
-func getAllowedContentType(drafts map[string]draftConfig) map[string]struct{} {
+func getAllowedContentType(cts ...string) map[string]struct{} {
 
 	retVal := map[string]struct{}{}
-	for _, d := range drafts {
-		retVal[d.contentType] = struct{}{}
+	for _, ct := range cts {
+		retVal[ct] = struct{}{}
 	}
 
 	return retVal

@@ -238,7 +238,7 @@ func TestWriteMethodeNativeContent(t *testing.T) {
 		contentTypeHeader:            contentType,
 	}
 
-	AllowedOriginSystemIdValues = map[string]struct{}{
+	AllowedOriginSystemIDValues = map[string]struct{}{
 		originIDMethodeTest: {},
 	}
 
@@ -278,7 +278,7 @@ func TestWriteSparkNativeContent(t *testing.T) {
 		contentTypeHeader:            contentTypeArticle + "; version=1.0; charset=utf-8",
 	}
 
-	AllowedOriginSystemIdValues = map[string]struct{}{
+	AllowedOriginSystemIDValues = map[string]struct{}{
 		originIDcctTest: {},
 	}
 
@@ -378,7 +378,7 @@ func TestWriteNativeContentInvalidContentType(t *testing.T) {
 	contentUUID := uuid.NewV4().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
-	AllowedOriginSystemIdValues = map[string]struct{}{
+	AllowedOriginSystemIDValues = map[string]struct{}{
 		originIDcctTest: {},
 	}
 
@@ -409,7 +409,7 @@ func TestWriteNativeContentWriteError(t *testing.T) {
 	contentUUID := uuid.NewV4().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
-	AllowedOriginSystemIdValues = map[string]struct{}{
+	AllowedOriginSystemIDValues = map[string]struct{}{
 		originIDMethodeTest: {},
 	}
 
