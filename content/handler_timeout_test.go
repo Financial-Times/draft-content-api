@@ -17,7 +17,7 @@ import (
 func TestReadTimeoutFromDraftContent(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
-	contentRWTestServer := newDraftContentRWTestServer(300*time.Millisecond, http.StatusOK, "application/json", "methode-web-pub")
+	contentRWTestServer := newDraftContentRWTestServer(300*time.Millisecond, http.StatusOK, contentType, originIDMethodeTest)
 	mapperTestServer := newMethodeArticleMapperTestServer(0, http.StatusOK)
 	contentAPITestServer := newUppContentAPITestServer(0, http.StatusOK)
 
@@ -30,8 +30,7 @@ func TestReadTimeoutFromDraftContent(t *testing.T) {
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
 	mapperService := NewDraftContentMapperService(mapperTestServer.server.URL, client)
-
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapperService, "methode-web-pub"))
+	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapperService))
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
 	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
@@ -59,7 +58,7 @@ func TestReadTimeoutFromDraftContent(t *testing.T) {
 func TestReadTimeoutFromUPPContent(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
-	contentRWTestServer := newDraftContentRWTestServer(10*time.Millisecond, http.StatusNotFound, "application/json", "methode-web-pub")
+	contentRWTestServer := newDraftContentRWTestServer(10*time.Millisecond, http.StatusNotFound, contentType, originIDMethodeTest)
 	mapperTestServer := newMethodeArticleMapperTestServer(0*time.Millisecond, http.StatusOK)
 	contentAPITestServer := newUppContentAPITestServer(300*time.Millisecond, http.StatusOK)
 
@@ -73,7 +72,7 @@ func TestReadTimeoutFromUPPContent(t *testing.T) {
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
 	mapperService := NewDraftContentMapperService(mapperTestServer.server.URL, client)
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapperService, "methode-web-pub"))
+	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapperService))
 
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
 	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
@@ -97,7 +96,7 @@ func TestReadTimeoutFromUPPContent(t *testing.T) {
 func TestReadTimeoutFromMethodeArticleMapper(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
-	contentRWTestServer := newDraftContentRWTestServer(10*time.Millisecond, http.StatusOK, "application/json", "methode-web-pub")
+	contentRWTestServer := newDraftContentRWTestServer(10*time.Millisecond, http.StatusOK, contentType, originIDMethodeTest)
 	mapperTestServer := newMethodeArticleMapperTestServer(300*time.Millisecond, http.StatusOK)
 	contentAPITestServer := newUppContentAPITestServer(0, http.StatusOK)
 
@@ -111,7 +110,7 @@ func TestReadTimeoutFromMethodeArticleMapper(t *testing.T) {
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
 	mapperService := NewDraftContentMapperService(mapperTestServer.server.URL, client)
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapperService, "methode-web-pub"))
+	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapperService))
 
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
 	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
@@ -141,7 +140,7 @@ func testRequest(server *httptest.Server, contentUUID string) (*http.Response, e
 func TestNativeWriteTimeout(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
-	contentRWTestServer := newDraftContentRWTestServer(300*time.Millisecond, http.StatusOK, "application/json", "methode-web-pub")
+	contentRWTestServer := newDraftContentRWTestServer(300*time.Millisecond, http.StatusOK, contentType, originIDMethodeTest)
 	mapperTestServer := newMethodeArticleMapperTestServer(0*time.Millisecond, http.StatusOK)
 	contentAPITestServer := newUppContentAPITestServer(0*time.Millisecond, http.StatusOK)
 
@@ -154,7 +153,7 @@ func TestNativeWriteTimeout(t *testing.T) {
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
 	mapperService := NewDraftContentMapperService(mapperTestServer.server.URL, client)
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapperService, "methode-web-pub"))
+	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapperService))
 
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
 	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
@@ -170,8 +169,8 @@ func TestNativeWriteTimeout(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodPut, server.URL+"/drafts/nativecontent/"+contentUUID, nil)
 	request.Header.Set(tidutils.TransactionIDHeader, testTID)
-	request.Header.Set(originSystemIdHeader, "methode-web-pub")
-	request.Header.Set(contentTypeHeader, "application/json")
+	request.Header.Set(originSystemIdHeader, originIDMethodeTest)
+	request.Header.Set(contentTypeHeader, contentType)
 
 	resp, err := client.Do(request)
 	defer resp.Body.Close()
@@ -218,7 +217,7 @@ func newMethodeArticleMapperTestServer(inducedDelay time.Duration, responseStatu
 			time.Sleep(inducedDelay)
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", contentType)
 		w.WriteHeader(responseStatus)
 		w.Write([]byte(fromMaMContent))
 	}))
@@ -233,7 +232,7 @@ func newUppContentAPITestServer(inducedDelay time.Duration, responseStatus int) 
 			m.EndpointCalled()
 			time.Sleep(inducedDelay)
 		}
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", contentType)
 		w.WriteHeader(responseStatus)
 		w.Write([]byte(fromUppContent))
 	}))

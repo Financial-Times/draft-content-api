@@ -58,8 +58,8 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 		nativeContent, err = rw.constructNativeDocumentForMapper(ctx, resp.Body, resp.Header.Get("Last-Modified-RFC3339"), resp.Header.Get("Write-Request-Id"))
 
 		if err == nil {
-			contentType := resp.Header.Get("Content-Type")
-			mapper, resolverErr := rw.resolver.MapperForOriginIdAndContentType(resp.Header.Get("X-Origin-System-Id"), contentType)
+			contentType := resp.Header.Get(contentTypeHeader)
+			mapper, resolverErr := rw.resolver.MapperForContentType(contentType)
 
 			if resolverErr != nil {
 				readLog.WithError(resolverErr).Error("Unable to map content")

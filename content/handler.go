@@ -14,7 +14,7 @@ import (
 
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,15 +27,8 @@ const (
 )
 
 var (
-	allowedOriginSystemIdValues = map[string]struct{}{
-		"methode-web-pub": {},
-		"cct":             {},
-	}
-
-	allowedContentTypes = map[string]struct{}{
-		"application/json":                    {},
-		"application/vnd.ft-upp-article+json": {},
-	}
+	AllowedOriginSystemIDValues = map[string]struct{}{}
+	AllowedContentTypes         = map[string]struct{}{}
 )
 
 type Handler struct {
@@ -223,7 +216,7 @@ func validateUUID(u string) error {
 
 func validateOrigin(id string) (string, error) {
 	var err error
-	if _, found := allowedOriginSystemIdValues[id]; !found {
+	if _, found := AllowedOriginSystemIDValues[id]; !found {
 		err = errors.New(fmt.Sprintf("unsupported or missing value for X-Origin-System-Id: %v", id))
 	}
 
@@ -234,7 +227,7 @@ func validateContentType(contentType string) (string, error) {
 	strippedType := stripMediaTypeParameters(contentType)
 
 	var err error
-	if _, found := allowedContentTypes[strippedType]; !found {
+	if _, found := AllowedContentTypes[strippedType]; !found {
 		err = errors.New(fmt.Sprintf("unsupported or missing value for Content-Type: %v", contentType))
 	}
 

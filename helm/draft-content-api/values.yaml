@@ -3,6 +3,13 @@ service:
   hasHealthcheck: "true"
   hasOpenAPI: "true"
 
+originID: "methode-web-pub|cct|spark-lists|spark"
+
+allowedContentTypes:
+  methodeContentType : "application/json"
+  sparkArticleContentType: "application/vnd.ft-upp-article+json"
+  sparkCPHContentType: "application/vnd.ft-upp-content-placeholder+json"
+
 eksCluster: false
 
 replicaCount: 2

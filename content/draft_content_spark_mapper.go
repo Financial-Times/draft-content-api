@@ -58,8 +58,8 @@ func (mapper *sparkDraftContentMapper) MapNativeContent(ctx context.Context, con
 					contentUUID, err)}
 		}
 
-		responseBody := map[string]interface{}{}
-		err = json.Unmarshal(responseBytes, responseBody)
+		responseBody := make(map[string]interface{})
+		err = json.Unmarshal(responseBytes, &responseBody)
 
 		if err != nil {
 			return nil, MapperError{resp.StatusCode,

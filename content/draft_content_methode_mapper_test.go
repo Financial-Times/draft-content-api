@@ -22,7 +22,7 @@ func TestMapper(t *testing.T) {
 
 	m := NewDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
-	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), "application/json")
+	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), contentType)
 
 	assert.NoError(t, err)
 	defer body.Close()
@@ -38,7 +38,7 @@ func TestMapperError(t *testing.T) {
 
 	m := NewDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
-	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), "application/json")
+	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), contentType)
 
 	assert.Error(t, err)
 	assert.Nil(t, body)
@@ -51,7 +51,7 @@ func TestMapperClientError(t *testing.T) {
 
 	m := NewDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
-	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), "application/json")
+	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), contentType)
 
 	assert.Error(t, err)
 	assert.Nil(t, body)
@@ -66,7 +66,7 @@ func TestMapperBadContent(t *testing.T) {
 
 	m := NewDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
-	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), "application/json")
+	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID), contentUUID, ioutil.NopCloser(strings.NewReader(nativeBody)), contentType)
 
 	assert.Error(t, err)
 	assert.Nil(t, body)
@@ -77,7 +77,7 @@ func mockMapperHttpServer(t *testing.T, status int, expectedBody string, respons
 		assert.Equal(t, "POST", r.Method, "HTTP method")
 		assert.Equal(t, "/map", r.URL.Path)
 		assert.Equal(t, "suggest", r.URL.Query().Get("mode"))
-		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		assert.Equal(t, contentType, r.Header.Get("Content-Type"))
 		assert.Equal(t, testTID, r.Header.Get(tidutils.TransactionIDHeader), tidutils.TransactionIDHeader)
 
 		by, err := ioutil.ReadAll(r.Body)

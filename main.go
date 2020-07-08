@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Financial-Times/api-endpoint"
@@ -12,12 +13,14 @@ import (
 	"github.com/Financial-Times/http-handlers-go/httphandlers"
 	status "github.com/Financial-Times/service-status-go/httphandlers"
 	"github.com/husobee/vestigo"
-	"github.com/jawher/mow.cli"
+	cli "github.com/jawher/mow.cli"
 	"github.com/rcrowley/go-metrics"
 	log "github.com/sirupsen/logrus"
 )
 
-const appDescription = "PAC Draft Content"
+const (
+	appDescription = "PAC Draft Content"
+)
 
 func main() {
 	app := cli.App("draft-content-api", appDescription)
@@ -67,8 +70,15 @@ func main() {
 	ucvEndpoint := app.String(cli.StringOpt{
 		Name:   "ucv-endpoint",
 		Value:  "http://localhost:9876",
-		Desc:   "Endpoint for mapping Spark/CCT article draft content",
+		Desc:   "Endpoint for mapping Spark article draft content",
 		EnvVar: "DRAFT_CONTENT_UCV_ENDPOINT",
+	})
+
+	ucphvEndpoint := app.String(cli.StringOpt{
+		Name:   "ucphv-endpoint",
+		Value:  "http://localhost:9877",
+		Desc:   "Endpoint for mapping Spark content placeholder draft content",
+		EnvVar: "DRAFT_CONTENT_PLACEHOLDER_UCV_ENDPOINT",
 	})
 
 	contentEndpoint := app.String(cli.StringOpt{
@@ -87,9 +97,37 @@ func main() {
 
 	apiYml := app.String(cli.StringOpt{
 		Name:   "api-yml",
-		Value:  "./api.yml",
+		Value:  "./api/api.yml",
 		Desc:   "Location of the API Swagger YML file.",
 		EnvVar: "API_YML",
+	})
+
+	originIDs := app.String(cli.StringOpt{
+		Name:   "origin-IDs",
+		Value:  "methode-web-pub|cct|spark-lists|spark",
+		Desc:   "Allowed originID header",
+		EnvVar: "ORIGIN_IDS",
+	})
+
+	methodeContentType := app.String(cli.StringOpt{
+		Name:   "methode-content-type",
+		Value:  "application/json",
+		Desc:   "Methode content type header",
+		EnvVar: "METHODE_CONTENT_TYPE",
+	})
+
+	sparkArticleContentType := app.String(cli.StringOpt{
+		Name:   "spark-article-content-type",
+		Value:  "application/vnd.ft-upp-article+json",
+		Desc:   "Spark article content type header",
+		EnvVar: "SPARK_ARTICLE_CONTENT_TYPE",
+	})
+
+	sparkCPHContentType := app.String(cli.StringOpt{
+		Name:   "spark-CPH-content-type",
+		Value:  "application/vnd.ft-upp-content-placeholder+json",
+		Desc:   "Spark content placeholder type header",
+		EnvVar: "SPARK_CPH_CONTENT_TYPE",
 	})
 
 	log.SetFormatter(&log.JSONFormatter{})
@@ -108,25 +146,28 @@ func main() {
 
 		httpClient := fthttp.NewClient(timeout, "PAC", *appSystemCode)
 
+		content.AllowedOriginSystemIDValues = getOriginID(*originIDs)
+
 		mamService := content.NewDraftContentMapperService(*mamEndpoint, httpClient)
 		ucvService := content.NewSparkDraftContentMapperService(*ucvEndpoint, httpClient)
+		ucphvService := content.NewSparkDraftContentMapperService(*ucphvEndpoint, httpClient)
 
-		originIdMapping := map[string]content.DraftContentMapper{
-			"methode-web-pub": mamService,
-		}
 		contentTypeMapping := map[string]content.DraftContentMapper{
-			"application/vnd.ft-upp-article+json": ucvService,
+			*methodeContentType:      mamService,
+			*sparkArticleContentType: ucvService,
+			*sparkCPHContentType:     ucphvService,
 		}
 
-		resolver := content.NewDraftContentMapperResolver(originIdMapping, contentTypeMapping)
-
+		resolver := content.NewDraftContentMapperResolver(contentTypeMapping)
 		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint, resolver, httpClient)
+
+		content.AllowedContentTypes = getAllowedContentType(*methodeContentType, *sparkArticleContentType, *sparkCPHContentType)
 
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey, httpClient)
 
 		contentHandler := content.NewHandler(cAPI, draftContentRWService, timeout)
 		healthService := health.NewHealthService(*appSystemCode, *appName,
-			appDescription, draftContentRWService, mamService, cAPI, ucvService)
+			appDescription, draftContentRWService, mamService, cAPI, ucvService, ucphvService)
 		serveEndpoints(*port, apiYml, contentHandler, healthService)
 	}
 	err := app.Run(os.Args)
@@ -165,4 +206,27 @@ func serveEndpoints(port string, apiYml *string, contentHandler *content.Handler
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Unable to start: %v", err)
 	}
+}
+
+func getOriginID(s string) map[string]struct{} {
+
+	retVal := make(map[string]struct{})
+	originIDs := strings.Split(s, "|")
+	if len(originIDs) > 0 {
+		for _, oID := range originIDs {
+			retVal[oID] = struct{}{}
+		}
+	}
+
+	return retVal
+}
+
+func getAllowedContentType(cts ...string) map[string]struct{} {
+
+	retVal := map[string]struct{}{}
+	for _, ct := range cts {
+		retVal[ct] = struct{}{}
+	}
+
+	return retVal
 }
