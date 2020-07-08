@@ -97,7 +97,7 @@ func main() {
 
 	apiYml := app.String(cli.StringOpt{
 		Name:   "api-yml",
-		Value:  "./api/api.yml",
+		Value:  "./api.yml",
 		Desc:   "Location of the API Swagger YML file.",
 		EnvVar: "API_YML",
 	})
