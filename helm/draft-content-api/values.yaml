@@ -10,7 +10,7 @@ allowedContentTypes:
   sparkArticleContentType: "application/vnd.ft-upp-article+json"
   sparkCPHContentType: "application/vnd.ft-upp-content-placeholder+json"
 
-eksCluster: false
+eksCluster: true
 
 replicaCount: 2
 image:
