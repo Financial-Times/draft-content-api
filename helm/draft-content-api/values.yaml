@@ -10,8 +10,6 @@ allowedContentTypes:
   sparkArticleContentType: "application/vnd.ft-upp-article+json"
   sparkCPHContentType: "application/vnd.ft-upp-content-placeholder+json"
 
-eksCluster: false
-
 replicaCount: 2
 image:
   repository: coco/draft-content-api
