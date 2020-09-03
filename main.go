@@ -81,6 +81,13 @@ func main() {
 		EnvVar: "DRAFT_CONTENT_PLACEHOLDER_UCV_ENDPOINT",
 	})
 
+	liveBlogPostEndpoint := app.String(cli.StringOpt{
+		Name:   "liveblogpost-endpoint",
+		Value:  "http://localhost:9878",
+		Desc:   "Endpoint for mapping Spark content placeholder draft content",
+		EnvVar: "DRAFT_CONTENT_LIVE_BLOG_POST_ENDPOINT",
+	})
+
 	contentEndpoint := app.String(cli.StringOpt{
 		Name:   "content-endpoint",
 		Value:  "http://test.api.ft.com/content",
@@ -130,6 +137,13 @@ func main() {
 		EnvVar: "SPARK_CPH_CONTENT_TYPE",
 	})
 
+	sparkLiveBlogPostContentType := app.String(cli.StringOpt{
+		Name:   "spark-live-blog-post-content-type",
+		Value:  "application/vnd.ft-upp-live-blog-post+json",
+		Desc:   "Spark content placeholder type header",
+		EnvVar: "SPARK_LIVE_BLOG_POST_CONTENT_TYPE",
+	})
+
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetLevel(log.InfoLevel)
 	log.Infof("[Startup] %v is starting", *appSystemCode)
@@ -151,23 +165,25 @@ func main() {
 		mamService := content.NewDraftContentMapperService(*mamEndpoint, httpClient)
 		ucvService := content.NewSparkDraftContentMapperService(*ucvEndpoint, httpClient)
 		ucphvService := content.NewSparkDraftContentMapperService(*ucphvEndpoint, httpClient)
+		lbpService := content.NewSparkDraftContentMapperService(*liveBlogPostEndpoint, httpClient)
 
 		contentTypeMapping := map[string]content.DraftContentMapper{
-			*methodeContentType:      mamService,
-			*sparkArticleContentType: ucvService,
-			*sparkCPHContentType:     ucphvService,
+			*methodeContentType:           mamService,
+			*sparkArticleContentType:      ucvService,
+			*sparkCPHContentType:          ucphvService,
+			*sparkLiveBlogPostContentType: lbpService,
 		}
 
 		resolver := content.NewDraftContentMapperResolver(contentTypeMapping)
 		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint, resolver, httpClient)
 
-		content.AllowedContentTypes = getAllowedContentType(*methodeContentType, *sparkArticleContentType, *sparkCPHContentType)
+		content.AllowedContentTypes = getAllowedContentType(*methodeContentType, *sparkArticleContentType, *sparkCPHContentType, *sparkLiveBlogPostContentType)
 
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey, httpClient)
 
 		contentHandler := content.NewHandler(cAPI, draftContentRWService, timeout)
 		healthService := health.NewHealthService(*appSystemCode, *appName,
-			appDescription, draftContentRWService, mamService, cAPI, ucvService, ucphvService)
+			appDescription, draftContentRWService, mamService, cAPI, ucvService, ucphvService, lbpService)
 		serveEndpoints(*port, apiYml, contentHandler, healthService)
 	}
 	err := app.Run(os.Args)

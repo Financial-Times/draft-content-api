@@ -9,6 +9,7 @@ allowedContentTypes:
   methodeContentType : "application/json"
   sparkArticleContentType: "application/vnd.ft-upp-article+json"
   sparkCPHContentType: "application/vnd.ft-upp-content-placeholder+json"
+  sparkLiveBlogPostContentType: "application/vnd.ft-upp-live-blog-post+json application/vnd.ft-upp-live-blog-post-internal+json"
 
 replicaCount: 2
 image:

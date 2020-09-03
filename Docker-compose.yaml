@@ -1,0 +1,45 @@
+version: '2'
+
+services:
+  draft-content-api:
+    build:
+      context: .
+      args:
+        GITHUB_USERNAME: ${GITHUB_USERNAME}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    environment:
+        APP_PORT: "8080"
+        DRAFT_CONTENT_LIVE_BLOG_POST_ENDPOINT: "http://live-blog-post-validator:8080"
+        DRAFT_CONTENT_RW_ENDPOINT: "http://generic-rw-aurora:8080"
+        API_YML: "./api.yml"
+    ports:
+        - 8080:8080
+    depends_on:
+        - live-blog-post-validator
+        - generic-rw-aurora
+
+  live-blog-post-validator:
+    image: coco/upp-live-blog-validator:v1.1.0-dev-bv-flags-rc3
+    environment:
+      APP_PORT: 8080
+      ALLOWED_CONTENT_TYPES: "application/vnd.ft-upp-live-blog-post+json application/vnd.ft-upp-live-blog-post-internal+json"
+      REMOVABLE_PROPERTIES: "alternativeTitles.promotionalTitleVariant _internal standout.breakingNews lastModified"
+      JSON_SCHEMA_NAME: "live-blog-post.json"
+      JSON_SCHEMAS_PATH: "/schemas"
+      REMOVE_INTERNAL_CONTENT_TYPE: "true"
+      CONTENT_TYPE_MAPPING: "application/vnd.ft-upp-live-blog-post+json=http://upp-content-validator.svc.ft.com/content/"
+      SCHEMA_BASE_URL: "http://example.com"
+      BODY_VALIDATION_ENABLED: "false"
+      QUEUE_ENABLED: "false"
+    ports:
+      - 8000:8080
+
+  generic-rw-aurora:
+    image: coco/generic-rw-aurora:v1.2.5
+    environment:
+      DB_CONNECTION_URL: "${GENERIC_RW_AURORA_DB_CONNECTION_URL}"
+      DB_PERFORM_SCHEMA_MIGRATIONS: "false"
+      APP_TIMEOUT: "10s"
+      API_YML: "/config.yml"
+    ports:
+      - 8001:8080

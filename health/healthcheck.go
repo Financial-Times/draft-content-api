@@ -17,16 +17,24 @@ type externalService interface {
 
 type Service struct {
 	health.HealthCheck
-	uppContentAPI     externalService
-	draftContentRW    externalService
-	methodeMapper     externalService
-	sparkValidator    externalService
-	sparkCPHValidator externalService
+	uppContentAPI         externalService
+	draftContentRW        externalService
+	methodeMapper         externalService
+	sparkValidator        externalService
+	sparkCPHValidator     externalService
+	liveBlogPostValidator externalService
 }
 
 func NewHealthService(appSystemCode string, appName string, appDescription string,
-	draftContent externalService, mam externalService, capi externalService, ucv externalService, ucphv externalService) *Service {
-	service := &Service{draftContentRW: draftContent, methodeMapper: mam, uppContentAPI: capi, sparkValidator: ucv, sparkCPHValidator: ucphv}
+	draftContent externalService, mam externalService, capi externalService, ucv externalService, ucphv externalService, lbp externalService) *Service {
+	service := &Service{
+		draftContentRW:        draftContent,
+		methodeMapper:         mam,
+		uppContentAPI:         capi,
+		sparkValidator:        ucv,
+		sparkCPHValidator:     ucphv,
+		liveBlogPostValidator: lbp,
+	}
 	service.SystemCode = appSystemCode
 	service.Name = appName
 	service.Description = appDescription
@@ -36,6 +44,7 @@ func NewHealthService(appSystemCode string, appName string, appDescription strin
 		service.contentAPICheck(),
 		service.draftUppContentValidatorCheck(),
 		service.draftUppContentPlaceholderValidatorCheck(),
+		service.draftUppLiveBlogPostValidatorCheck(),
 	}
 	return service
 }
@@ -106,6 +115,18 @@ func (service *Service) contentAPICheck() health.Check {
 		Severity:         1,
 		TechnicalSummary: fmt.Sprintf("Content API is not available at %v", service.uppContentAPI.Endpoint()),
 		Checker:          externalServiceChecker(service.uppContentAPI, "Content API"),
+	}
+}
+
+func (service *Service) draftUppLiveBlogPostValidatorCheck() health.Check {
+	return health.Check{
+		ID:               "check-draft-upp-live-blog-validator",
+		BusinessImpact:   "Draft spark live blog content cannot be provided for suggestions",
+		Name:             "Check upp-content-validator service",
+		PanicGuide:       "https://runbooks.in.ft.com/draft-content-api",
+		Severity:         1,
+		TechnicalSummary: fmt.Sprintf("Live blog content validator is not available at %v", service.liveBlogPostValidator.Endpoint()),
+		Checker:          externalServiceChecker(service.sparkValidator, "Draft content upp-content-validator"),
 	}
 }
 
