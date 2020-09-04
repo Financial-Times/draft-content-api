@@ -28,7 +28,6 @@ services:
       JSON_SCHEMAS_PATH: "/schemas"
       REMOVE_INTERNAL_CONTENT_TYPE: "true"
       CONTENT_TYPE_MAPPING: "application/vnd.ft-upp-live-blog-post+json=http://upp-content-validator.svc.ft.com/content/"
-      SCHEMA_BASE_URL: "http://example.com"
       BODY_VALIDATION_ENABLED: "false"
       QUEUE_ENABLED: "false"
     ports:
