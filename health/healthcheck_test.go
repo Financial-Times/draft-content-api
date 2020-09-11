@@ -17,7 +17,7 @@ import (
 var mockConfig config.Config = config.Config{
 	HealthChecks: map[string]config.HealthCheckConfig{
 		"http://cool.api.ft.com/content": {
-			Id:               "TestId",
+			ID:               "TestId",
 			BusinessImpact:   "TestBusinessImpact",
 			Name:             "TestName",
 			PanicGuide:       "TestPanicGuide",

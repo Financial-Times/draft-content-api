@@ -207,7 +207,6 @@ func serveEndpoints(port string, apiYml *string, contentHandler *content.Handler
 }
 
 func getOriginID(s string) map[string]struct{} {
-
 	retVal := make(map[string]struct{})
 	originIDs := strings.Split(s, "|")
 	if len(originIDs) > 0 {
@@ -220,7 +219,6 @@ func getOriginID(s string) map[string]struct{} {
 }
 
 func getAllowedContentType(config *config.Config) map[string]struct{} {
-
 	retVal := map[string]struct{}{}
 	for ct := range config.ContentTypes {
 		retVal[ct] = struct{}{}

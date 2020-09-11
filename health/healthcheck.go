@@ -43,7 +43,7 @@ func NewHealthService(appSystemCode string, appName string, appDescription strin
 		}
 
 		c := health.Check{
-			ID:               cfg.Id,
+			ID:               cfg.ID,
 			BusinessImpact:   cfg.BusinessImpact,
 			Name:             cfg.Name,
 			PanicGuide:       cfg.PanicGuide,
@@ -64,7 +64,7 @@ func findService(endpoint string, services []ExternalService) (ExternalService, 
 		}
 	}
 
-	return nil, fmt.Errorf("Unable to find service with endpoint %v", endpoint)
+	return nil, fmt.Errorf("unable to find service with endpoint %v", endpoint)
 }
 
 func (service *Service) HealthCheckHandleFunc() func(w http.ResponseWriter, r *http.Request) {

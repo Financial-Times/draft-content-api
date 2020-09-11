@@ -17,7 +17,7 @@ type MappingConfig struct {
 }
 
 type HealthCheckConfig struct {
-	Id               string `yaml:"id"`
+	ID               string `yaml:"id"`
 	BusinessImpact   string `yaml:"business-impact"`
 	Name             string `yaml:"name"`
 	PanicGuide       string `yaml:"panic-guide"`
