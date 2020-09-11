@@ -35,19 +35,11 @@ Options:
         --app-timeout="8s"                        Endpoints Timeout Duration ($APP_TIMEOUT)
         --port="8080"                             Port to listen on ($APP_PORT)
         --content-rw-endpoint="..."               Endpoint for draft content RW ($DRAFT_CONTENT_RW_ENDPOINT)
-        --mam-endpoint="..."                      Endpoint for mapping Methode article draft content ($DRAFT_CONTENT_MAM_ENDPOINT)
-        --ucv-endpoint="..."                      Endpoint for mapping Spark article draft content ($DRAFT_CONTENT_UCV_ENDPOINT)
-        --ucphv-endpoint="..."                    Endpoint for mapping Spark content placeholder draft content ($DRAFT_CONTENT_PLACEHOLDER_UCV_ENDPOINT)
-        --liveblogpost-endpoint="..."             Endpoint for mapping Spark live blog post content ($DRAFT_CONTENT_LIVE_BLOG_POST_ENDPOINT)
         --content-endpoint="..."                  Endpoint to get content from CAPI ($CONTENT_ENDPOINT)
         --content-api-key="..."                   API key to access CAPI ($CAPI_APIKEY)
         --api-yml="..."                           Location of the API Swagger YML file ($API_YML)
+        --mapper-yml="..."                        Location of the mapper YML file (MAPPER_YML)
         --origin-IDs="..."                        Allowed originID header ($ORIGIN_IDS)
-        --methode-content-type="..."              Methode content type header ($METHODE_CONTENT_TYPE)
-        --spark-article-content-type="..."        Spark article content type header ($SPARK_ARTICLE_CONTENT_TYPE)
-        --spark-CPH-content-type="..."            Spark content placeholder type header ($SPARK_CPH_CONTENT_TYPE)
-        --spark-live-blog-post-content-type="..." Spark live blog post content type header ($SPARK_LIVE_BLOG_POST_CONTENT_TYPE)
-
 
 3. Test:
 

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Financial-Times/api-endpoint"
+	"github.com/Financial-Times/draft-content-api/config"
 	"github.com/Financial-Times/draft-content-api/content"
 	"github.com/Financial-Times/draft-content-api/health"
 	"github.com/Financial-Times/go-ft-http/fthttp"
@@ -60,34 +61,6 @@ func main() {
 		EnvVar: "DRAFT_CONTENT_RW_ENDPOINT",
 	})
 
-	mamEndpoint := app.String(cli.StringOpt{
-		Name:   "mam-endpoint",
-		Value:  "http://localhost:11070",
-		Desc:   "Endpoint for mapping Methode article draft content",
-		EnvVar: "DRAFT_CONTENT_MAM_ENDPOINT",
-	})
-
-	ucvEndpoint := app.String(cli.StringOpt{
-		Name:   "ucv-endpoint",
-		Value:  "http://localhost:9876",
-		Desc:   "Endpoint for mapping Spark article draft content",
-		EnvVar: "DRAFT_CONTENT_UCV_ENDPOINT",
-	})
-
-	ucphvEndpoint := app.String(cli.StringOpt{
-		Name:   "ucphv-endpoint",
-		Value:  "http://localhost:9877",
-		Desc:   "Endpoint for mapping Spark content placeholder draft content",
-		EnvVar: "DRAFT_CONTENT_PLACEHOLDER_UCV_ENDPOINT",
-	})
-
-	liveBlogPostEndpoint := app.String(cli.StringOpt{
-		Name:   "liveblogpost-endpoint",
-		Value:  "http://localhost:9878",
-		Desc:   "Endpoint for mapping Spark content placeholder draft content",
-		EnvVar: "DRAFT_CONTENT_LIVE_BLOG_POST_ENDPOINT",
-	})
-
 	contentEndpoint := app.String(cli.StringOpt{
 		Name:   "content-endpoint",
 		Value:  "http://test.api.ft.com/content",
@@ -116,32 +89,11 @@ func main() {
 		EnvVar: "ORIGIN_IDS",
 	})
 
-	methodeContentType := app.String(cli.StringOpt{
-		Name:   "methode-content-type",
-		Value:  "application/json",
-		Desc:   "Methode content type header",
-		EnvVar: "METHODE_CONTENT_TYPE",
-	})
-
-	sparkArticleContentType := app.String(cli.StringOpt{
-		Name:   "spark-article-content-type",
-		Value:  "application/vnd.ft-upp-article+json",
-		Desc:   "Spark article content type header",
-		EnvVar: "SPARK_ARTICLE_CONTENT_TYPE",
-	})
-
-	sparkCPHContentType := app.String(cli.StringOpt{
-		Name:   "spark-CPH-content-type",
-		Value:  "application/vnd.ft-upp-content-placeholder+json",
-		Desc:   "Spark content placeholder type header",
-		EnvVar: "SPARK_CPH_CONTENT_TYPE",
-	})
-
-	sparkLiveBlogPostContentType := app.String(cli.StringOpt{
-		Name:   "spark-live-blog-post-content-type",
-		Value:  "application/vnd.ft-upp-live-blog-post+json",
-		Desc:   "Spark content placeholder type header",
-		EnvVar: "SPARK_LIVE_BLOG_POST_CONTENT_TYPE",
+	mapperYml := app.String(cli.StringOpt{
+		Name:   "mapper-yml",
+		Value:  "./config.yml",
+		Desc:   "Location of the Mapper configuration YML file.",
+		EnvVar: "MAPPER_YML",
 	})
 
 	log.SetFormatter(&log.JSONFormatter{})
@@ -152,38 +104,36 @@ func main() {
 		log.Infof("System code: %s, App Name: %s, Port: %s, App Timeout: %sms", *appSystemCode, *appName, *port, *appTimeout)
 
 		timeout, err := time.ParseDuration(*appTimeout)
-
 		if err != nil {
 			log.Errorf("App could not start, error=[%s]\n", err)
 			return
+		}
+
+		mapperConfig, err := config.ReadConfig(*mapperYml)
+		if err != nil {
+			log.WithError(err).Fatal("unable to read r/w YAML configuration")
 		}
 
 		httpClient := fthttp.NewClient(timeout, "PAC", *appSystemCode)
 
 		content.AllowedOriginSystemIDValues = getOriginID(*originIDs)
 
-		mamService := content.NewDraftContentMapperService(*mamEndpoint, httpClient)
-		ucvService := content.NewSparkDraftContentMapperService(*ucvEndpoint, httpClient)
-		ucphvService := content.NewSparkDraftContentMapperService(*ucphvEndpoint, httpClient)
-		lbpService := content.NewSparkDraftContentMapperService(*liveBlogPostEndpoint, httpClient)
-
-		contentTypeMapping := map[string]content.DraftContentMapper{
-			*methodeContentType:           mamService,
-			*sparkArticleContentType:      ucvService,
-			*sparkCPHContentType:          ucphvService,
-			*sparkLiveBlogPostContentType: lbpService,
-		}
+		contentTypeMapping := buildContentTypeMapping(mapperConfig, httpClient)
 
 		resolver := content.NewDraftContentMapperResolver(contentTypeMapping)
 		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint, resolver, httpClient)
 
-		content.AllowedContentTypes = getAllowedContentType(*methodeContentType, *sparkArticleContentType, *sparkCPHContentType, *sparkLiveBlogPostContentType)
+		content.AllowedContentTypes = getAllowedContentType(mapperConfig)
 
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey, httpClient)
 
 		contentHandler := content.NewHandler(cAPI, draftContentRWService, timeout)
-		healthService := health.NewHealthService(*appSystemCode, *appName,
-			appDescription, draftContentRWService, mamService, cAPI, ucvService, ucphvService, lbpService)
+		healthService, err := health.NewHealthService(*appSystemCode, *appName, appDescription, draftContentRWService, cAPI,
+			mapperConfig, extractServices(contentTypeMapping))
+		if err != nil {
+			log.WithError(err).Fatal("Unable to create health service")
+		}
+
 		serveEndpoints(*port, apiYml, contentHandler, healthService)
 	}
 	err := app.Run(os.Args)
@@ -191,6 +141,38 @@ func main() {
 		log.Errorf("App could not start, error=[%s]\n", err)
 		return
 	}
+}
+
+func extractServices(dcm map[string]content.DraftContentMapper) []health.ExternalService {
+	result := make([]health.ExternalService, 0, len(dcm))
+
+	for _, value := range dcm {
+		result = append(result, value)
+	}
+
+	return result
+}
+
+func buildContentTypeMapping(mapperConfig *config.Config, httpClient *http.Client) map[string]content.DraftContentMapper {
+	contentTypeMapping := map[string]content.DraftContentMapper{}
+
+	for contentType, cfg := range mapperConfig.ContentTypes {
+		var service content.DraftContentMapper
+
+		switch cfg.Mapper {
+		case "methode":
+			service = content.NewDraftContentMapperService(cfg.Endpoint, httpClient)
+		case "spark":
+			service = content.NewSparkDraftContentMapperService(cfg.Endpoint, httpClient)
+		default:
+			log.WithField("Mapper", cfg.Mapper).Fatal("Unknown mapper")
+		}
+		contentTypeMapping[contentType] = service
+
+		log.WithField("Content-Type", contentType).WithField("Endpoint", cfg.Endpoint).WithField("Mapper", cfg.Mapper).Info("added mapper service")
+	}
+
+	return contentTypeMapping
 }
 
 func serveEndpoints(port string, apiYml *string, contentHandler *content.Handler, healthService *health.Service) {
@@ -237,10 +219,10 @@ func getOriginID(s string) map[string]struct{} {
 	return retVal
 }
 
-func getAllowedContentType(cts ...string) map[string]struct{} {
+func getAllowedContentType(config *config.Config) map[string]struct{} {
 
 	retVal := map[string]struct{}{}
-	for _, ct := range cts {
+	for ct := range config.ContentTypes {
 		retVal[ct] = struct{}{}
 	}
 

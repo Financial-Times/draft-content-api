@@ -22,5 +22,6 @@ WORKDIR /
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=0 /artifacts/* /
 COPY ./api/api.yml /
+COPY ./config.yml /
 
 CMD [ "/draft-content-api" ]
