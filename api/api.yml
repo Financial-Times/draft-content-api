@@ -53,6 +53,8 @@ paths:
         - application/json
         - application/vnd.ft-upp-article+json
         - application/vnd.ft-upp-content-placeholder+json
+        - application/vnd.ft-upp-live-blog-post+json
+        - application/vnd.ft-upp-live-blog-package+json
       parameters:
         - name: uuid
           in: path

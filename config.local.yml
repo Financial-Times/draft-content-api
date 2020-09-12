@@ -2,25 +2,36 @@ content-types:
   "application/vnd.ft-upp-live-blog-post+json":
     mapper: "spark"
     end-point: "http://localhost:8001"
+  "application/vnd.ft-upp-live-blog-package+json":
+    mapper: "spark"
+    end-point: "http://localhost:8002"    
   "application/vnd.ft-upp-article+json":
     mapper: "spark"
-    end-point: "http://localhost:8002"
+    end-point: "http://localhost:8003"
   "application/vnd.ft-upp-content-placeholder+json":
     mapper: "spark"
-    end-point: "http://localhost:8003"
+    end-point: "http://localhost:8004"
   "application/json":
     mapper: "methode"
-    end-point: "http://localhost:8004"
+    end-point: "http://localhost:8005"
 end-point-health-checks:
   "http://localhost:8001":
-    id: "check-draft-upp-live-blog-validator"
+    id: "check-draft-upp-live-blog-post-validator"
     business-impact: "Draft spark content placeholder cannot be provided for suggestions"
-    name: "Check upp-live-blog-validator service"
+    name: "Check upp-live-blog-post-validator service"
     panic-guide: "https://runbooks.in.ft.com/draft-content-api"
     severity: 1
-    technical-summary: "Live blog content validator is not available at %v"
-    checker-name: "Draft content upp-live-blog-validator"
+    technical-summary: "Live blog post content validator is not available at %v"
+    checker-name: "Draft content upp-live-blog-post-validator"
   "http://localhost:8002":
+    id: "check-draft-upp-live-blog-package-validator"
+    business-impact: "Draft spark content placeholder cannot be provided for suggestions"
+    name: "Check upp-live-blog-package-validator service"
+    panic-guide: "https://runbooks.in.ft.com/draft-content-api"
+    severity: 1
+    technical-summary: "Live blog package content validator is not available at %v"
+    checker-name: "Draft content upp-live-blog-package-validator"
+  "http://localhost:8003":
     id: "check-draft-upp-content-validator"
     business-impact: "Draft spark content cannot be provided for suggestions"
     name: "Check upp-content-validator service"
@@ -28,7 +39,7 @@ end-point-health-checks:
     severity: 1
     technical-summary: "Draft upp content validator is not available at %v"
     checker-name: "Draft content upp-content-validator"
-  "http://localhost:8003":
+  "http://localhost:8004":
     id: "check-draft-upp-content-placeholder-validator"
     business-impact: "Draft spark content placeholder cannot be provided for suggestions"
     name: "Check upp-content-validator service"
@@ -36,7 +47,7 @@ end-point-health-checks:
     severity: 1
     technical-summary: "Draft upp content validator is not available at %v"
     checker-name: "Draft content upp-content-placeholder-validator"
-  "http://localhost:8004":
+  "http://localhost:8005":
     id: "check-draft-content-mapper"
     business-impact: "Draft methode content cannot be provided for suggestions"
     name: "Check draft content mapper service"

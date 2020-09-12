@@ -2,24 +2,35 @@ content-types:
   "application/vnd.ft-upp-live-blog-post+json":
     mapper: "spark"
     end-point: "http://upp-live-blog-post-validator:8080"
+  "application/vnd.ft-upp-live-blog-package+json":
+    mapper: "spark"
+    end-point: "http://upp-live-blog-package-validator:8080"   
   "application/vnd.ft-upp-article+json":
     mapper: "spark"
-    end-point: "http://upp-content-validator:8080http://upp-content-validator:8080"
+    end-point: "http://upp-content-validator:8080"
   "application/vnd.ft-upp-content-placeholder+json":
     mapper: "spark"
-    end-point: "http://upp-content-validator:8080"
+    end-point: "http://upp-content-placeholder-validator:8080"
   "application/json":
     mapper: "methode"
     end-point: "http://methode-article-mapper:8080"
 end-point-health-checks:
   "http://upp-live-blog-post-validator:8080":
-    id: "check-draft-upp-live-blog-validator"
+    id: "check-draft-upp-live-blog-post-validator"
     business-impact: "Draft spark content placeholder cannot be provided for suggestions"
-    name: "Check upp-live-blog-validator service"
+    name: "Check upp-live-blog-post-validator service"
     panic-guide: "https://runbooks.in.ft.com/draft-content-api"
     severity: 1
-    technical-summary: "Live blog content validator is not available at %v"
-    checker-name: "Draft content upp-live-blog-validator"
+    technical-summary: "Live blog post content validator is not available at %v"
+    checker-name: "Draft content upp-live-blog-post-validator"
+  "http://upp-live-blog-package-validator:8080":
+    id: "check-draft-upp-live-blog-package-validator"
+    business-impact: "Draft spark content placeholder cannot be provided for suggestions"
+    name: "Check upp-live-blog-package-validator service"
+    panic-guide: "https://runbooks.in.ft.com/draft-content-api"
+    severity: 1
+    technical-summary: "Live blog package content validator is not available at %v"
+    checker-name: "Draft content upp-live-blog-package-validator"
   "http://upp-content-validator:8080":
     id: "check-draft-upp-content-validator"
     business-impact: "Draft spark content cannot be provided for suggestions"
