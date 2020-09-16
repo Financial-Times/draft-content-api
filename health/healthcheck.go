@@ -5,39 +5,66 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Financial-Times/draft-content-api/config"
 	health "github.com/Financial-Times/go-fthealth/v1_1"
 	"github.com/Financial-Times/service-status-go/gtg"
 	log "github.com/sirupsen/logrus"
 )
 
-type externalService interface {
+type ExternalService interface {
 	Endpoint() string
 	GTG() error
 }
 
 type Service struct {
 	health.HealthCheck
-	uppContentAPI     externalService
-	draftContentRW    externalService
-	methodeMapper     externalService
-	sparkValidator    externalService
-	sparkCPHValidator externalService
+	uppContentAPI  ExternalService
+	draftContentRW ExternalService
 }
 
 func NewHealthService(appSystemCode string, appName string, appDescription string,
-	draftContent externalService, mam externalService, capi externalService, ucv externalService, ucphv externalService) *Service {
-	service := &Service{draftContentRW: draftContent, methodeMapper: mam, uppContentAPI: capi, sparkValidator: ucv, sparkCPHValidator: ucphv}
+	draftContent ExternalService, capi ExternalService, hcConfig *config.Config, services []ExternalService) (*Service, error) {
+	service := &Service{
+		draftContentRW: draftContent,
+		uppContentAPI:  capi,
+	}
 	service.SystemCode = appSystemCode
 	service.Name = appName
 	service.Description = appDescription
 	service.Checks = []health.Check{
 		service.draftContentRWCheck(),
-		service.draftContentMethodeArticleMapperCheck(),
 		service.contentAPICheck(),
-		service.draftUppContentValidatorCheck(),
-		service.draftUppContentPlaceholderValidatorCheck(),
 	}
-	return service
+
+	for endpoint, cfg := range hcConfig.HealthChecks {
+		externalService, err := findService(endpoint, services)
+		if err != nil {
+			return nil, err
+		}
+
+		c := health.Check{
+			ID:               cfg.ID,
+			BusinessImpact:   cfg.BusinessImpact,
+			Name:             cfg.Name,
+			PanicGuide:       cfg.PanicGuide,
+			Severity:         cfg.Severity,
+			TechnicalSummary: fmt.Sprintf(cfg.TechnicalSummary, endpoint),
+			Checker:          externalServiceChecker(externalService, cfg.CheckerName),
+		}
+		service.Checks = append(service.Checks, c)
+	}
+
+	return service, nil
+}
+
+func findService(endpoint string, services []ExternalService) (ExternalService, error) {
+	for _, s := range services {
+		if s.Endpoint() == endpoint {
+			return s, nil
+		}
+	}
+
+	return nil, fmt.Errorf("unable to find service with endpoint %v", endpoint)
 }
 
 func (service *Service) HealthCheckHandleFunc() func(w http.ResponseWriter, r *http.Request) {
@@ -61,42 +88,6 @@ func (service *Service) draftContentRWCheck() health.Check {
 	}
 }
 
-func (service *Service) draftContentMethodeArticleMapperCheck() health.Check {
-	return health.Check{
-		ID:               "check-draft-content-mapper",
-		BusinessImpact:   "Draft methode content cannot be provided for suggestions",
-		Name:             "Check draft content mapper service",
-		PanicGuide:       "https://runbooks.in.ft.com/draft-content-api",
-		Severity:         1,
-		TechnicalSummary: fmt.Sprintf("Draft content mapper is not available at %v", service.methodeMapper.Endpoint()),
-		Checker:          externalServiceChecker(service.methodeMapper, "Draft content methode-article-mapper"),
-	}
-}
-
-func (service *Service) draftUppContentValidatorCheck() health.Check {
-	return health.Check{
-		ID:               "check-draft-upp-content-validator",
-		BusinessImpact:   "Draft spark content cannot be provided for suggestions",
-		Name:             "Check upp-content-validator service",
-		PanicGuide:       "https://runbooks.in.ft.com/draft-content-api",
-		Severity:         1,
-		TechnicalSummary: fmt.Sprintf("Draft upp content validator is not available at %v", service.sparkValidator.Endpoint()),
-		Checker:          externalServiceChecker(service.sparkValidator, "Draft content upp-content-validator"),
-	}
-}
-
-func (service *Service) draftUppContentPlaceholderValidatorCheck() health.Check {
-	return health.Check{
-		ID:               "check-draft-upp-content-placeholder-validator",
-		BusinessImpact:   "Draft spark content placeholder cannot be provided for suggestions",
-		Name:             "Check upp-content-validator service",
-		PanicGuide:       "https://runbooks.in.ft.com/draft-content-api",
-		Severity:         1,
-		TechnicalSummary: fmt.Sprintf("Draft upp content placeholder validator is not available at %v", service.sparkCPHValidator.Endpoint()),
-		Checker:          externalServiceChecker(service.sparkValidator, "Draft content upp-content-placeholder-validator"),
-	}
-}
-
 func (service *Service) contentAPICheck() health.Check {
 	return health.Check{
 		ID:               "check-content-api-health",
@@ -109,7 +100,7 @@ func (service *Service) contentAPICheck() health.Check {
 	}
 }
 
-func externalServiceChecker(s externalService, serviceName string) func() (string, error) {
+func externalServiceChecker(s ExternalService, serviceName string) func() (string, error) {
 	return func() (string, error) {
 		if err := s.GTG(); err != nil {
 			log.WithField("url", s.Endpoint()).WithError(err).Error("External service healthcehck failed")
