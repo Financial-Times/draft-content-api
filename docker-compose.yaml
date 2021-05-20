@@ -14,7 +14,7 @@ services:
     depends_on:
         - upp-live-blog-post-validator
         - upp-live-blog-package-validator
-        - upp-content-validator
+        - upp-article-validator
         - upp-content-placeholder-validator
         - methode-article-mapper
         - generic-rw-aurora
@@ -59,8 +59,8 @@ services:
     ports:
       - 8002:8080
 
-  upp-content-validator:
-    image: coco/upp-content-validator:v1.7.2
+  upp-article-validator:
+    image: coco/upp-article-validator:v1.1.0
     environment:
       APP_NAME: "upp-article-validator"
       BODY_VALIDATION_ENABLED: "false"
@@ -84,12 +84,12 @@ services:
       BASE_SCHEMAS_URL: "http://localhost:8080"
     ports:
       - 8003:8080
-    command: /upp-content-validator
+    command: /upp-article-validator
     depends_on:
       - body-validation
 
   upp-content-placeholder-validator:
-    image: coco/upp-content-validator:v1.7.2
+    image: coco/upp-content-placeholder-validator:v1.2.0
     environment:
       APP_NAME: "content-placeholder-validator"
       BODY_VALIDATION_ENABLED: "false"
@@ -112,7 +112,7 @@ services:
       REMOVABLE_PROPERTIES: ""
     ports:
       - 8004:8080
-    command: /upp-content-validator
+    command: /upp-content-placeholder-validator
     depends_on:
       - body-validation
 
