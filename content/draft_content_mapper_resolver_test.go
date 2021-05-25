@@ -10,7 +10,7 @@ import (
 func TestDraftContentMapperResolver_MapperForContentType(t *testing.T) {
 
 	mam := NewDraftContentMapperService("methode-endpoint", http.DefaultClient)
-	ucv := NewDraftContentMapperService("upp-content-validator-endpoint", http.DefaultClient)
+	ucv := NewDraftContentMapperService("upp-article-endpoint", http.DefaultClient)
 	resolver := NewDraftContentMapperResolver(happyResolverConfig(mam, ucv))
 
 	methodeMapper, err := resolver.MapperForContentType(contentType)
@@ -26,7 +26,7 @@ func TestDraftContentMapperResolver_MapperForContentType(t *testing.T) {
 
 func TestDraftContentMapperResolver_MissingMethodeMapping(t *testing.T) {
 
-	ucv := NewDraftContentMapperService("upp-content-validator-endpoint", http.DefaultClient)
+	ucv := NewDraftContentMapperService("upp-article-endpoint", http.DefaultClient)
 	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(ucv))
 
 	mapper, err := resolver.MapperForContentType(contentType)
