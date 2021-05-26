@@ -12,7 +12,7 @@ spec:
       middlewares:
       - name: basic-auth
         namespace: default
-      - name: replace-path-draft-content-api
+      - name: replace-path-{{.Values.service.name}}
         namespace: default
       services:
       - kind: Service
