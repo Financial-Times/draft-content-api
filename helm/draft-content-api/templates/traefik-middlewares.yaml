@@ -1,0 +1,9 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: replace-path-{{.Values.service.name}}
+  namespace: default
+spec:
+  replacePathRegex:
+    regex: ^/__{{.Values.service.name}}/(.*)
+    replacement: /$1
