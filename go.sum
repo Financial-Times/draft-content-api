@@ -12,6 +12,8 @@ github.com/Financial-Times/transactionid-utils-go v0.2.0 h1:YcET5Hd1fUGWWpQSVszY
 github.com/Financial-Times/transactionid-utils-go v0.2.0/go.mod h1:tPAcAFs/dR6Q7hBDGNyUyixHRvg/n9NW/JTq8C58oZ0=
 github.com/davecgh/go-spew v1.1.1-0.20170711183451-adab96458c51 h1:Tci31o5/xMI4El+SZhrKl5Uod6VfetSApCF/aXU0wig=
 github.com/davecgh/go-spew v1.1.1-0.20170711183451-adab96458c51/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
+github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/hashicorp/go-version v0.0.0-20170202080759-03c5bf6be031 h1:c3Xdf5fTpk+hqhxqCO+ymqjfUXV9+GZqNgTtlnVzDos=
 github.com/hashicorp/go-version v0.0.0-20170202080759-03c5bf6be031/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09ZGVZPK5anwXA=
 github.com/husobee/vestigo v1.0.2 h1:K4Awra33kZsLUQeTwrtdkj/Yf6pIy7b6qMtJH3s5SA4=
@@ -27,8 +29,6 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rcrowley/go-metrics v0.0.0-20161128210544-1f30fe9094a5 h1:gwcdIpH6NU2iF8CmcqD+CP6+1CkRBOhHaPR+iu6raBY=
 github.com/rcrowley/go-metrics v0.0.0-20161128210544-1f30fe9094a5/go.mod h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=
-github.com/satori/go.uuid v1.1.0 h1:B9KXyj+GzIpJbV7gmr873NsY6zpbxNy24CBtGrk7jHo=
-github.com/satori/go.uuid v1.1.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
 github.com/sirupsen/logrus v1.0.2-0.20170713114250-a3f95b5c4235 h1:aPIH7fk87dLHot2nJ8bbakmAgwM4RZJtGEkwQ52pQCg=
 github.com/sirupsen/logrus v1.0.2-0.20170713114250-a3f95b5c4235/go.mod h1:pMByvHTf9Beacp5x1UXfOR9xyW/9antXMhjMPG0dEzc=
 github.com/stretchr/objx v0.0.0-20150928122152-1a9d0bb9f541 h1:nvL7eaZN/Zw5emVOGaOclbLMeFO030UrPtWFTUS0p80=
@@ -42,7 +42,5 @@ golang.org/x/sys v0.0.0-20170718161335-cd2c276457ed/go.mod h1:STP8DvDyc/dI5b8T5h
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f h1:BLraFXnmrev5lT+xlilqcH8XK9/i0At2xKjWk4p6zsU=
 gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
-gopkg.in/yaml.v2 v2.0.0-20170721122051-25c4ec802a7d h1:2DX7x6HUDGZUyuEDAhUsQQNqkb1zvDyKTjVoTdzaEzo=
-gopkg.in/yaml.v2 v2.0.0-20170721122051-25c4ec802a7d/go.mod h1:JAlM8MvJe8wmxCU4Bli9HhUf9+ttbYbLASfIpnQbh74=
 gopkg.in/yaml.v2 v2.2.4 h1:/eiJrUcujPVeJ3xlSWaiNi3uSVmDGBK1pDHUHAnao1I=
 gopkg.in/yaml.v2 v2.2.4/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=

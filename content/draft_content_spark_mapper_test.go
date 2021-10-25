@@ -10,12 +10,12 @@ import (
 
 	"github.com/Financial-Times/go-ft-http/fthttp"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
-	"github.com/satori/go.uuid"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSparkMapper(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
 	mappedBody := "{\"foo\":\"baz\"}"
 	server := mockSparkMapperHttpServer(t, http.StatusOK, nativeBody, mappedBody)
@@ -35,7 +35,7 @@ func TestSparkMapper(t *testing.T) {
 }
 
 func TestSparkMapperError(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
 	server := mockSparkMapperHttpServer(t, http.StatusServiceUnavailable, nativeBody, "")
 
@@ -51,7 +51,7 @@ func TestSparkMapperError(t *testing.T) {
 }
 
 func TestSparkMapperClientError(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
 	server := mockSparkMapperHttpServer(t, http.StatusBadRequest, nativeBody, "")
 
@@ -69,7 +69,7 @@ func TestSparkMapperClientError(t *testing.T) {
 }
 
 func TestSparkMapperBadContent(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
 	server := mockSparkMapperHttpServer(t, http.StatusUnprocessableEntity, nativeBody, "")
 
