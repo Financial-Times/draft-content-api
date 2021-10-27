@@ -13,8 +13,8 @@ import (
 	"time"
 
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
+	"github.com/google/uuid"
 	"github.com/husobee/vestigo"
-	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -210,7 +210,7 @@ func (h *Handler) readContentFromUPP(ctx context.Context, w http.ResponseWriter,
 }
 
 func validateUUID(u string) error {
-	_, err := uuid.FromString(u)
+	_, err := uuid.Parse(u)
 	return err
 }
 

@@ -14,7 +14,7 @@ import (
 
 	"github.com/Financial-Times/go-ft-http/fthttp"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
-	"github.com/satori/go.uuid"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -33,7 +33,7 @@ const (
 )
 
 func TestReadContent(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	nativeContent := []byte("{\"foo\":\"bar\"}")
 	mappedContent := []byte("{\"foo\":\"baz\"}")
 	testSystemId := "foo-bar-baz"
@@ -59,7 +59,7 @@ func TestReadContent(t *testing.T) {
 }
 
 func TestReadContentNotFound(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	testSystemId := "foo-bar-baz"
 	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
 
@@ -78,7 +78,7 @@ func TestReadContentNotFound(t *testing.T) {
 }
 
 func TestReadContentError(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	testSystemId := "foo-bar-baz"
 	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
 
@@ -97,7 +97,7 @@ func TestReadContentError(t *testing.T) {
 }
 
 func TestReadContentMapperError(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	nativeContent := []byte("{\"foo\":\"bar\"}")
 	testSystemId := "foo-bar-baz"
 	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
@@ -118,7 +118,7 @@ func TestReadContentMapperError(t *testing.T) {
 }
 
 func TestReadContentMapperUnprocessableEntityError(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	nativeContent := []byte("{\"foo\":\"bar\"}")
 	testSystemId := "foo-bar-baz"
 	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
@@ -139,7 +139,7 @@ func TestReadContentMapperUnprocessableEntityError(t *testing.T) {
 }
 
 func TestWriteContent(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	content := "{\"foo\":\"bar\"}"
 	testSystemId := "foo-bar-baz"
 	headers := map[string]string{
@@ -158,7 +158,7 @@ func TestWriteContent(t *testing.T) {
 }
 
 func TestWriteContentWriterReturnsStatusCreated(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	content := "{\"foo\":\"bar\"}"
 	testSystemId := "foo-bar-baz"
 	headers := map[string]string{
@@ -177,7 +177,7 @@ func TestWriteContentWriterReturnsStatusCreated(t *testing.T) {
 }
 
 func TestWriteContentWriterReturnsError(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	content := "{\"foo\":\"bar\"}"
 	testSystemId := "foo-bar-baz"
 	headers := map[string]string{

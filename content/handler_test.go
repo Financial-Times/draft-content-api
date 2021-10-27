@@ -15,8 +15,8 @@ import (
 
 	"github.com/Financial-Times/go-ft-http/fthttp"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
+	"github.com/google/uuid"
 	"github.com/husobee/vestigo"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -230,7 +230,7 @@ func TestReadConnectionError(t *testing.T) {
 }
 
 func TestWriteMethodeNativeContent(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	draftBody := "{\"foo\":\"bar\"}"
 	headers := map[string]string{
 		tidutils.TransactionIDHeader: testTID,
@@ -270,7 +270,7 @@ func TestWriteMethodeNativeContent(t *testing.T) {
 }
 
 func TestWriteSparkNativeContent(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	draftBody := "{\"foo\":\"bar\"}"
 	headers := map[string]string{
 		tidutils.TransactionIDHeader: testTID,
@@ -331,7 +331,7 @@ func TestWriteNativeContentInvalidUUID(t *testing.T) {
 }
 
 func TestWriteNativeContentWithoutOriginSystemId(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
 	h := NewHandler(nil, nil /*&rw*/, testTimeout)
@@ -352,7 +352,7 @@ func TestWriteNativeContentWithoutOriginSystemId(t *testing.T) {
 }
 
 func TestWriteNativeContentInvalidOriginSystemId(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
 	h := NewHandler(nil, nil, testTimeout)
@@ -375,7 +375,7 @@ func TestWriteNativeContentInvalidOriginSystemId(t *testing.T) {
 }
 
 func TestWriteNativeContentInvalidContentType(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
 	AllowedOriginSystemIDValues = map[string]struct{}{
@@ -406,7 +406,7 @@ func TestWriteNativeContentInvalidContentType(t *testing.T) {
 }
 
 func TestWriteNativeContentWriteError(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
 	AllowedOriginSystemIDValues = map[string]struct{}{

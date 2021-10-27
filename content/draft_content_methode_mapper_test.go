@@ -10,12 +10,12 @@ import (
 
 	"github.com/Financial-Times/go-ft-http/fthttp"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
-	"github.com/satori/go.uuid"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMapper(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
 	mappedBody := "{\"foo\":\"baz\"}"
 	server := mockMapperHttpServer(t, http.StatusOK, nativeBody, mappedBody)
@@ -32,7 +32,7 @@ func TestMapper(t *testing.T) {
 }
 
 func TestMapperError(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
 	server := mockMapperHttpServer(t, http.StatusServiceUnavailable, nativeBody, "")
 
@@ -45,7 +45,7 @@ func TestMapperError(t *testing.T) {
 }
 
 func TestMapperClientError(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
 	server := mockMapperHttpServer(t, http.StatusUnprocessableEntity, nativeBody, "")
 
@@ -60,7 +60,7 @@ func TestMapperClientError(t *testing.T) {
 }
 
 func TestMapperBadContent(t *testing.T) {
-	contentUUID := uuid.NewV4().String()
+	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
 	server := mockMapperHttpServer(t, http.StatusUnprocessableEntity, nativeBody, "")
 
