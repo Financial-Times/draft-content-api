@@ -32,7 +32,7 @@ workflows:
           name: build-and-test-project
       - dredd
       - ft-golang-ci/docker-build:
-          docker-version: "20"
+          docker-version: "latest"
           name: build-docker-image
   snyk-scanning:
     jobs:
