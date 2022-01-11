@@ -30,9 +30,9 @@ func TestReadTimeoutFromDraftContent(t *testing.T) {
 	mapperService := NewSparkDraftContentMapperService(contentAPITestServer.server.URL, client)
 	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(mapperService))
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
-	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
+	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
-	handler := NewHandler(uppApi, contentRWService, 150*time.Millisecond)
+	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond)
 
 	r := vestigo.NewRouter()
 
@@ -42,7 +42,10 @@ func TestReadTimeoutFromDraftContent(t *testing.T) {
 	defer server.Close()
 
 	resp, err := testRequest(server, contentUUID)
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
@@ -70,9 +73,9 @@ func TestReadTimeoutFromUPPContent(t *testing.T) {
 	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(mapperService))
 
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
-	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
+	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
-	handler := NewHandler(uppApi, contentRWService, 150*time.Millisecond)
+	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond)
 
 	r := vestigo.NewRouter()
 
@@ -82,7 +85,10 @@ func TestReadTimeoutFromUPPContent(t *testing.T) {
 	defer server.Close()
 
 	resp, err := testRequest(server, contentUUID)
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
@@ -117,9 +123,9 @@ func TestNativeWriteTimeout(t *testing.T) {
 	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(mapperService))
 
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
-	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
+	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
-	handler := NewHandler(uppApi, contentRWService, 150*time.Millisecond)
+	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond)
 
 	r := vestigo.NewRouter()
 
@@ -134,15 +140,17 @@ func TestNativeWriteTimeout(t *testing.T) {
 	request.Header.Set(contentTypeHeader, contentTypeArticle)
 
 	resp, err := client.Do(request)
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
 	contentRWTestServer.AssertExpectations(t)
 }
 
-func newDraftContentRWTestServer(inducedDelay time.Duration, responseStatus int, contentType string, originId string) *mockServer {
-
+func newDraftContentRWTestServer(inducedDelay time.Duration, responseStatus int, contentType string, originID string) *mockServer {
 	m := &mockServer{}
 	m.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -158,9 +166,12 @@ func newDraftContentRWTestServer(inducedDelay time.Duration, responseStatus int,
 		case http.MethodGet:
 			logrus.Info("Processing GET test request")
 			w.Header().Set("Content-Type", contentType)
-			w.Header().Set("X-Origin-System-Id", originId)
+			w.Header().Set("X-Origin-System-Id", originID)
 			w.WriteHeader(responseStatus)
-			w.Write([]byte(fromUppContent))
+			_, err := w.Write([]byte(fromUppContent))
+			if err != nil {
+				panic(err)
+			}
 			return
 		}
 
@@ -178,7 +189,10 @@ func newUppContentAPITestServer(inducedDelay time.Duration, responseStatus int) 
 		}
 		w.Header().Set("Content-Type", contentTypeArticle)
 		w.WriteHeader(responseStatus)
-		w.Write([]byte(fromUppContent))
+		_, err := w.Write([]byte(fromUppContent))
+		if err != nil {
+			panic(err)
+		}
 	}))
 
 	return m

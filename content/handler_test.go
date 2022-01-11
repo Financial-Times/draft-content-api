@@ -49,6 +49,10 @@ func TestHappyRead(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 	resp := w.Result()
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 	body, err := ioutil.ReadAll(resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -77,6 +81,10 @@ func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 	resp := w.Result()
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 	body, err := ioutil.ReadAll(resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -84,7 +92,7 @@ func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 
 	var actual map[string]interface{}
 	err = json.Unmarshal(body, &actual)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	assert.Equal(t, contentUUID, actual["uuid"])
 	assert.Equal(t,
@@ -117,6 +125,10 @@ func TestReadNoBackOffForOtherErrors(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 	resp := w.Result()
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 	body, err := ioutil.ReadAll(resp.Body)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
@@ -320,7 +332,8 @@ func TestWriteNativeContentInvalidUUID(t *testing.T) {
 	resp := w.Result()
 
 	response := make(map[string]string)
-	json.NewDecoder(resp.Body).Decode(&response)
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	assert.Contains(t, response["message"], "Invalid content UUID", "error message")
 }
@@ -341,7 +354,8 @@ func TestWriteNativeContentWithoutOriginSystemId(t *testing.T) {
 	resp := w.Result()
 
 	response := make(map[string]string)
-	json.NewDecoder(resp.Body).Decode(&response)
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	assert.Contains(t, response["message"], "Invalid origin system id", "error message")
 }
@@ -364,7 +378,8 @@ func TestWriteNativeContentInvalidOriginSystemId(t *testing.T) {
 	resp := w.Result()
 
 	response := make(map[string]string)
-	json.NewDecoder(resp.Body).Decode(&response)
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	assert.Contains(t, response["message"], "Invalid origin system id", "error message")
 }
@@ -395,7 +410,8 @@ func TestWriteNativeContentInvalidContentType(t *testing.T) {
 	resp := w.Result()
 
 	response := make(map[string]string)
-	json.NewDecoder(resp.Body).Decode(&response)
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	assert.Contains(t, response["message"], "Invalid content type", "error message")
 }
@@ -429,7 +445,8 @@ func TestWriteNativeContentWriteError(t *testing.T) {
 	resp := w.Result()
 
 	response := make(map[string]string)
-	json.NewDecoder(resp.Body).Decode(&response)
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	assert.NoError(t, err)
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.Contains(t, response["message"], "Error in writing draft content", "error message")
 	rw.AssertExpectations(t)

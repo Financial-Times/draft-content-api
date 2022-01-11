@@ -47,7 +47,10 @@ func newGTGServerMock(t *testing.T, httpStatus int, body string) *httptest.Serve
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, status.GTGPath, r.URL.Path)
 		w.WriteHeader(httpStatus)
-		w.Write([]byte(body))
+		_, err := w.Write([]byte(body))
+		if err != nil {
+			panic(err)
+		}
 	}))
 	return ts
 }
