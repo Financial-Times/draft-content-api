@@ -69,7 +69,10 @@ jobs:
         command: dredd
   build-docker-image:
     docker:
-    - image: cimg/base:2022.01
+    - auth:
+        password: $DOCKERHUB_ACCESS_TOKEN
+        username: $DOCKERHUB_USERNAME
+      image: cimg/base:2022.01
     steps:
     - checkout
     - setup_remote_docker
