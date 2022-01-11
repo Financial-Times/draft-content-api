@@ -69,7 +69,7 @@ jobs:
         command: dredd
   build-docker-image:
     docker:
-    - image: cimg/base:latest
+    - image: cimg/base:2022.01
     steps:
     - checkout
     - setup_remote_docker
