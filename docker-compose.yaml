@@ -16,7 +16,6 @@ services:
         - upp-live-blog-package-validator
         - upp-article-validator
         - upp-content-placeholder-validator
-        - methode-article-mapper
         - generic-rw-aurora
 
   generic-rw-aurora:
@@ -115,24 +114,6 @@ services:
     command: /upp-content-placeholder-validator
     depends_on:
       - body-validation
-
-  methode-article-mapper:
-    image: coco/methode-article-mapper:1.28.5
-    environment:
-      KAFKA_ENABLED: "false"
-      KAFKA_PROXY_URL: "localhost"
-      DOCUMENT_STORE_API_ENABLED: "false"
-      DOCUMENT_STORE_API_URL: "localhost"
-      JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication -server"
-      CONCORDANCE_API_ENABLED: "false"
-      CONCORDANCE_API_URL: "localhost"
-      NATIVE_TX_REF: "draftReference=draftReference"
-      LAST_MODIFIED_SOURCE: "fromNative"
-      TX_ID_SOURCE: "fromNative"
-      TX_PROPERTY: "draftReference"
-      API_HOST: "NA"
-    ports:
-      - 8005:8080
 
   body-validation:
     image: coco/body-validation-service:v0.3.1

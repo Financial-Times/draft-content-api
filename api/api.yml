@@ -67,7 +67,7 @@ paths:
           description: The origin system ID
           required: true
           type: string
-          x-example: methode-web-pub
+          x-example: cct
       responses:
         200:
           description: The content has been saved successfully.

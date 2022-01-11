@@ -3,7 +3,7 @@ service:
   hasHealthcheck: "true"
   hasOpenAPI: "true"
 
-originID: "methode-web-pub|cct|spark-lists|spark"
+originID: "cct|spark-lists|spark"
 
 replicaCount: 2
 image:
