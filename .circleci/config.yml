@@ -1,187 +1,42 @@
-# Orb 'financial-times/golang-ci@1' resolved to 'financial-times/golang-ci@1.1.0'
-version: 2
+version: 2.1
+orbs:
+  ft-golang-ci: financial-times/golang-ci@dev:alpha
 jobs:
-  build-and-test-project:
-    docker:
-    - auth:
-        password: $DOCKERHUB_ACCESS_TOKEN
-        username: $DOCKERHUB_USERNAME
-      image: golang:1
-    steps:
-    - checkout
-    - run:
-        command: |
-          git config --global --unset url."ssh://git@github.com".insteadOf
-          export GOPRIVATE="github.com/Financial-Times"
-          git config --global url."https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
-          go build -mod=readonly -v ./...
-        name: Build source code
-    - run:
-        command: |
-          curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v1.23.8
-        name: Download golangci-lint
-    - run:
-        command: wget https://raw.githubusercontent.com/Financial-Times/upp-coding-standard/v1.3.0/golangci-config/.golangci.yml
-        name: Download linters' config file
-    - run:
-        command: golangci-lint run --new-from-rev=$(git rev-parse refs/remotes/origin/HEAD) --config .golangci.yml --build-tags=integration
-        name: Run linters
-    - run:
-        command: |
-          GO111MODULE=off go get github.com/mattn/goveralls
-          GO111MODULE=off go get -u github.com/jstemmer/go-junit-report
-        name: Download goveralls and go-junit-report
-    - run:
-        command: |
-          mkdir -p /tmp/coverage-results
-        name: Create test folders
-    - run:
-        command: |
-          go test -tags=integration -mod=readonly -race -cover -coverprofile=/tmp/coverage-results/coverage.out ./...
-        name: Run unit and integration tests
-    - run:
-        command: |
-          goveralls -coverprofile=/tmp/coverage-results/coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
-        name: Report coverage
-    working_directory: /project
   dredd:
     working_directory: /go/src/github.com/Financial-Times/draft-content-api
     docker:
-    - image: golang:1
-      environment:
-        GOPATH: /go
-        CIRCLE_TEST_REPORTS: /tmp/test-results
-        CIRCLE_COVERAGE_REPORT: /tmp/coverage-results
-    steps:
-    - checkout
-    - run:
-        name: Go Build
-        command: go build -mod=readonly -v
-    - run:
-        name: Download dredd
-        command: |
-          curl -sL https://deb.nodesource.com/setup_12.x | bash -
-          DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs=12.\*
-          npm install -g --unsafe-perm --loglevel warn --user 0 --no-progress dredd@8.0.0
-          rm -rf /var/lib/apt/lists/*
-    - run:
-        name: Dredd API Testing
-        command: dredd
-  build-docker-image:
-    docker:
-    - auth:
-        password: $DOCKERHUB_ACCESS_TOKEN
-        username: $DOCKERHUB_USERNAME
-      image: cimg/base:2022.01
-    steps:
-    - checkout
-    - setup_remote_docker
-    - run:
-        command: |
-          docker build \
-          --build-arg GITHUB_USERNAME=${GITHUB_USERNAME} \
-          --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} \
-           .
-        name: Build Dockerfile
-  scan-dependencies:
-    docker:
-    - auth:
-        password: $DOCKERHUB_ACCESS_TOKEN
-        username: $DOCKERHUB_USERNAME
-      image: circleci/golang:1.17
-    steps:
-    - checkout
-    - run:
-        command: git config --global --unset url."ssh://git@github.com".insteadOf
-        name: Unset ssh instead of https
-    - run:
-        command: git config --global url."https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
-        name: Set GITHUB_USERNAME and GITHUB_TOKEN
-    - run:
-        command: |
-          if [[ ! -x "/usr/local/bin/snyk" ]]; then
-            if [[ "linux" == "alpine" && "true" == "true" ]]; then
-              apk add -q --no-progress --no-cache curl wget libstdc++ sudo
-            fi
-            curl -sO https://static.snyk.io/cli/latest/snyk-linux
-            curl -sO https://static.snyk.io/cli/latest/snyk-linux.sha256
-            sha256sum -c snyk-linux.sha256
-            sudo mv snyk-linux /usr/local/bin/snyk
-            sudo chmod +x /usr/local/bin/snyk
-          fi
-          snyk config set disableSuggestions=true
-          snyk auth $SNYK_TOKEN
+      - image: golang:1
         environment:
-          SNYK_INTEGRATION_NAME: CIRCLECI_ORB
-          SNYK_INTEGRATION_VERSION: 1.1.1
-        name: Download Snyk CLI
-    - run:
-        command: "snyk test  --severity-threshold=medium    \n"
-        environment:
-          SNYK_INTEGRATION_NAME: CIRCLECI_ORB
-          SNYK_INTEGRATION_VERSION: 1.1.1
-        name: Run Snyk
-    - run:
-        command: "snyk monitor  --project-name=Financial-Times/$CIRCLE_PROJECT_REPONAME   \n"
-        environment:
-          SNYK_INTEGRATION_NAME: CIRCLECI_ORB
-          SNYK_INTEGRATION_VERSION: 1.1.1
-        name: Run Snyk monitor for continuous monitoring on snyk.io
+          GOPATH: /go
+          CIRCLE_TEST_REPORTS: /tmp/test-results
+          CIRCLE_COVERAGE_REPORT: /tmp/coverage-results
+    steps:
+      - checkout
+      - run:
+          name: Go Build
+          command: go build -mod=readonly -v
+      - run:
+          name: Download dredd
+          command: |
+            curl -sL https://deb.nodesource.com/setup_12.x | bash -
+            DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs=12.\*
+            npm install -g --unsafe-perm --loglevel warn --user 0 --no-progress dredd@8.0.0
+            rm -rf /var/lib/apt/lists/*
+      - run:
+          name: Dredd API Testing
+          command: dredd
 workflows:
   test-and-build-docker:
     jobs:
-    - build-and-test-project:
-        context: dockerhub-shared
-    - dredd
-    - build-docker-image:
-        context: dockerhub-shared
+      - ft-golang-ci/build-and-test:
+          name: build-and-test-project
+      - dredd
+      - ft-golang-ci/docker-build:
+          name: build-docker-image
+          requires:
+            - build-and-test-project
   snyk-scanning:
     jobs:
-    - scan-dependencies:
-        context: cm-team-snyk
-  version: 2
-
-# Original config.yml file:
-# version: 2.1
-# orbs:
-#   ft-golang-ci: financial-times/golang-ci@1
-# jobs:
-#   dredd:
-#     working_directory: /go/src/github.com/Financial-Times/draft-content-api
-#     docker:
-#       - image: golang:1
-#         environment:
-#           GOPATH: /go
-#           CIRCLE_TEST_REPORTS: /tmp/test-results
-#           CIRCLE_COVERAGE_REPORT: /tmp/coverage-results
-#     steps:
-#       - checkout
-#       - run:
-#           name: Go Build
-#           command: go build -mod=readonly -v
-#       - run:
-#           name: Download dredd
-#           command: |
-#             curl -sL https://deb.nodesource.com/setup_12.x | bash -
-#             DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs=12.\\*
-#             npm install -g --unsafe-perm --loglevel warn --user 0 --no-progress dredd@8.0.0
-#             rm -rf /var/lib/apt/lists/*
-#       - run:
-#           name: Dredd API Testing
-#           command: dredd
-# workflows:
-#   test-and-build-docker:
-#     jobs:
-#       - ft-golang-ci/build-and-test:
-#           name: build-and-test-project
-#           context: dockerhub-shared
-#       - dredd
-#       - ft-golang-ci/docker-build:
-#           docker-version: \"latest\"
-#           name: build-docker-image
-#           context: dockerhub-shared
-#   snyk-scanning:
-#     jobs:
-#       - ft-golang-ci/scan:
-#           name: scan-dependencies
-#           context: cm-team-snyk
+      - ft-golang-ci/scan:
+          name: scan-dependencies
+          context: cm-team-snyk
