@@ -83,7 +83,6 @@ jobs:
           --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} \
            .
         name: Build Dockerfile
-    working_directory: project
   scan-dependencies:
     docker:
     - auth:
