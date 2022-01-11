@@ -33,6 +33,7 @@ workflows:
       - dredd
       - ft-golang-ci/docker-build:
           name: build-docker-image
+          docker-version: "20"
           requires:
             - build-and-test-project
   snyk-scanning:
