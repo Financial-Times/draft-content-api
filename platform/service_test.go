@@ -48,9 +48,7 @@ func newGTGServerMock(t *testing.T, httpStatus int, body string) *httptest.Serve
 		assert.Equal(t, status.GTGPath, r.URL.Path)
 		w.WriteHeader(httpStatus)
 		_, err := w.Write([]byte(body))
-		if err != nil {
-			panic(err)
-		}
+		assert.NoError(t, err)
 	}))
 	return ts
 }

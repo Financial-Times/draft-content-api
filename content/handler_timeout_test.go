@@ -17,8 +17,8 @@ import (
 func TestReadTimeoutFromDraftContent(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
-	contentRWTestServer := newDraftContentRWTestServer(300*time.Millisecond, http.StatusOK, contentTypeArticle, originIDcctTest)
-	contentAPITestServer := newUppContentAPITestServer(0, http.StatusOK)
+	contentRWTestServer := newDraftContentRWTestServer(t, 300*time.Millisecond, http.StatusOK, contentTypeArticle, originIDcctTest)
+	contentAPITestServer := newUppContentAPITestServer(t, 0, http.StatusOK)
 
 	contentRWTestServer.On("EndpointCalled")
 
@@ -58,8 +58,8 @@ func TestReadTimeoutFromDraftContent(t *testing.T) {
 func TestReadTimeoutFromUPPContent(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
-	contentRWTestServer := newDraftContentRWTestServer(10*time.Millisecond, http.StatusNotFound, contentTypeArticle, originIDcctTest)
-	contentAPITestServer := newUppContentAPITestServer(300*time.Millisecond, http.StatusOK)
+	contentRWTestServer := newDraftContentRWTestServer(t, 10*time.Millisecond, http.StatusNotFound, contentTypeArticle, originIDcctTest)
+	contentAPITestServer := newUppContentAPITestServer(t, 300*time.Millisecond, http.StatusOK)
 
 	contentRWTestServer.On("EndpointCalled")
 	contentAPITestServer.On("EndpointCalled")
@@ -103,8 +103,8 @@ func testRequest(server *httptest.Server, contentUUID string) (*http.Response, e
 func TestNativeWriteTimeout(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
-	contentRWTestServer := newDraftContentRWTestServer(300*time.Millisecond, http.StatusOK, contentTypeArticle, originIDcctTest)
-	contentAPITestServer := newUppContentAPITestServer(0*time.Millisecond, http.StatusOK)
+	contentRWTestServer := newDraftContentRWTestServer(t, 300*time.Millisecond, http.StatusOK, contentTypeArticle, originIDcctTest)
+	contentAPITestServer := newUppContentAPITestServer(t, 0*time.Millisecond, http.StatusOK)
 	AllowedOriginSystemIDValues = map[string]struct{}{
 		originIDcctTest: {},
 	}
@@ -150,7 +150,7 @@ func TestNativeWriteTimeout(t *testing.T) {
 	contentRWTestServer.AssertExpectations(t)
 }
 
-func newDraftContentRWTestServer(inducedDelay time.Duration, responseStatus int, contentType string, originID string) *mockServer {
+func newDraftContentRWTestServer(t *testing.T, inducedDelay time.Duration, responseStatus int, contentType string, originID string) *mockServer {
 	m := &mockServer{}
 	m.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -169,9 +169,7 @@ func newDraftContentRWTestServer(inducedDelay time.Duration, responseStatus int,
 			w.Header().Set("X-Origin-System-Id", originID)
 			w.WriteHeader(responseStatus)
 			_, err := w.Write([]byte(fromUppContent))
-			if err != nil {
-				panic(err)
-			}
+			assert.NoError(t, err)
 			return
 		}
 
@@ -180,7 +178,7 @@ func newDraftContentRWTestServer(inducedDelay time.Duration, responseStatus int,
 	return m
 }
 
-func newUppContentAPITestServer(inducedDelay time.Duration, responseStatus int) *mockServer {
+func newUppContentAPITestServer(t *testing.T, inducedDelay time.Duration, responseStatus int) *mockServer {
 	m := &mockServer{}
 	m.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if inducedDelay > 0 {
@@ -190,9 +188,7 @@ func newUppContentAPITestServer(inducedDelay time.Duration, responseStatus int) 
 		w.Header().Set("Content-Type", contentTypeArticle)
 		w.WriteHeader(responseStatus)
 		_, err := w.Write([]byte(fromUppContent))
-		if err != nil {
-			panic(err)
-		}
+		assert.NoError(t, err)
 	}))
 
 	return m

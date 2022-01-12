@@ -208,9 +208,7 @@ func mockReadFromGenericRW(t *testing.T, status int, contentUUID string, systemI
 		w.Header().Set("Last-Modified-RFC3339", lastModified)
 		w.WriteHeader(status)
 		_, err := w.Write(body)
-		if err != nil {
-			panic(err)
-		}
+		assert.NoError(t, err)
 	}))
 }
 

@@ -9,7 +9,7 @@ import (
 
 func TestDraftContentMapperResolver_MapperForContentType(t *testing.T) {
 	ucv := NewSparkDraftContentMapperService("upp-article-endpoint", http.DefaultClient)
-	resolver := NewDraftContentMapperResolver(happyResolverConfig(ucv))
+	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(ucv))
 
 	uppContentValidator, err := resolver.MapperForContentType("application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
 
@@ -24,12 +24,6 @@ func TestDraftContentMapperResolver_MissingSparkMapping(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, mapper)
-}
-
-func happyResolverConfig(ucv DraftContentMapper) (contentTypeToMapper map[string]DraftContentMapper) {
-	return map[string]DraftContentMapper{
-		contentTypeArticle: ucv,
-	}
 }
 
 func cctOnlyResolverConfig(ucv DraftContentMapper) (contentTypeToMapper map[string]DraftContentMapper) {

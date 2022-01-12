@@ -96,6 +96,7 @@ func mockSparkMapperHTTPServer(t *testing.T, status int, expectedBody string, re
 		assert.Equal(t, expectedBody, string(by), "payload")
 
 		w.WriteHeader(status)
-		w.Write([]byte(response))
+		_, err = w.Write([]byte(response))
+		assert.NoError(t, err)
 	}))
 }
