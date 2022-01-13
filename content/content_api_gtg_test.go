@@ -56,11 +56,13 @@ func newContentAPIGTGServerMock(t *testing.T, status int, body string) *httptest
 		assert.Equal(t, "/content/"+syntheticContentUUID, r.URL.Path)
 		if apiKey := r.Header.Get(apiKeyHeader); apiKey != testAPIKey {
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("unauthorized"))
+			_, err := w.Write([]byte("unauthorized"))
+			assert.NoError(t, err)
 			return
 		}
 		w.WriteHeader(status)
-		w.Write([]byte(body))
+		_, err := w.Write([]byte(body))
+		assert.NoError(t, err)
 	}))
 	return ts
 }

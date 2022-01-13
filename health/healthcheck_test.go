@@ -41,6 +41,10 @@ func TestHappyHealthCheck(t *testing.T) {
 	h.HealthCheckHandleFunc()(w, req)
 
 	resp := w.Result()
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	hcBody := make(map[string]interface{})
@@ -80,6 +84,10 @@ func TestUnhappyHealthCheck(t *testing.T) {
 	h.HealthCheckHandleFunc()(w, req)
 
 	resp := w.Result()
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	hcBody := make(map[string]interface{})
@@ -115,6 +123,10 @@ func TestHappyGTG(t *testing.T) {
 	status.NewGoodToGoHandler(h.GTGChecker())(w, req)
 
 	resp := w.Result()
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 

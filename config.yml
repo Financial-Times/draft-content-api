@@ -11,9 +11,6 @@ content-types:
   "application/vnd.ft-upp-content-placeholder+json":
     mapper: "spark"
     end-point: "http://upp-content-placeholder-validator:8080"
-  "application/json":
-    mapper: "methode"
-    end-point: "http://methode-article-mapper:8080"
 end-point-health-checks:
   "http://upp-live-blog-post-validator:8080":
     id: "check-draft-upp-live-blog-post-validator"
@@ -47,11 +44,3 @@ end-point-health-checks:
     severity: 1
     technical-summary: "Draft upp content validator is not available at %v"
     checker-name: "Draft content upp-content-placeholder-validator"
-  "http://methode-article-mapper:8080":
-    id: "check-draft-content-mapper"
-    business-impact: "Draft methode content cannot be provided for suggestions"
-    name: "Check draft content mapper service"
-    panic-guide: "https://runbooks.in.ft.com/draft-content-api"
-    severity: 1
-    technical-summary: "Draft content mapper is not available at %v"
-    checker-name: "Draft content methode-article-mapper"

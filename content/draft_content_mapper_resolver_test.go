@@ -8,15 +8,8 @@ import (
 )
 
 func TestDraftContentMapperResolver_MapperForContentType(t *testing.T) {
-
-	mam := NewDraftContentMapperService("methode-endpoint", http.DefaultClient)
-	ucv := NewDraftContentMapperService("upp-article-endpoint", http.DefaultClient)
-	resolver := NewDraftContentMapperResolver(happyResolverConfig(mam, ucv))
-
-	methodeMapper, err := resolver.MapperForContentType(contentType)
-
-	assert.NoError(t, err, "Fallback to originId lookup should've handled the content-type lookup miss")
-	assert.Equal(t, mam, methodeMapper, "Should return the same instance impl of DraftContentMapper")
+	ucv := NewSparkDraftContentMapperService("upp-article-endpoint", http.DefaultClient)
+	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(ucv))
 
 	uppContentValidator, err := resolver.MapperForContentType("application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
 
@@ -24,27 +17,8 @@ func TestDraftContentMapperResolver_MapperForContentType(t *testing.T) {
 	assert.Equal(t, ucv, uppContentValidator, "Should return the same instance impl of DraftContentMapper")
 }
 
-func TestDraftContentMapperResolver_MissingMethodeMapping(t *testing.T) {
-
-	ucv := NewDraftContentMapperService("upp-article-endpoint", http.DefaultClient)
-	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(ucv))
-
-	mapper, err := resolver.MapperForContentType(contentType)
-
-	assert.Error(t, err)
-	assert.Nil(t, mapper)
-
-	uppContentValidator, err := resolver.MapperForContentType("application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
-
-	assert.NoError(t, err, "Fallback to originId lookup should've handled the content-type lookup miss")
-	assert.Equal(t, ucv, uppContentValidator, "Should return the same instance impl of DraftContentMapper")
-
-}
-
 func TestDraftContentMapperResolver_MissingSparkMapping(t *testing.T) {
-
-	mam := NewDraftContentMapperService("methode-endpoint", http.DefaultClient)
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mam))
+	resolver := NewDraftContentMapperResolver(map[string]DraftContentMapper{})
 
 	mapper, err := resolver.MapperForContentType("application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
 
@@ -52,21 +26,8 @@ func TestDraftContentMapperResolver_MissingSparkMapping(t *testing.T) {
 	assert.Nil(t, mapper)
 }
 
-func happyResolverConfig(mam DraftContentMapper, ucv DraftContentMapper) (contentTypeToMapper map[string]DraftContentMapper) {
-	return map[string]DraftContentMapper{
-		contentType:        mam,
-		contentTypeArticle: ucv,
-	}
-}
-
 func cctOnlyResolverConfig(ucv DraftContentMapper) (contentTypeToMapper map[string]DraftContentMapper) {
 	return map[string]DraftContentMapper{
 		contentTypeArticle: ucv,
-	}
-}
-
-func methodeOnlyResolverConfig(mam DraftContentMapper) (contentTypeToMapper map[string]DraftContentMapper) {
-	return map[string]DraftContentMapper{
-		contentType: mam,
 	}
 }

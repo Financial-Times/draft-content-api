@@ -84,7 +84,7 @@ func main() {
 
 	originIDs := app.String(cli.StringOpt{
 		Name:   "origin-IDs",
-		Value:  "methode-web-pub|cct|spark-lists|spark",
+		Value:  "cct|spark-lists|spark",
 		Desc:   "Allowed originID header",
 		EnvVar: "ORIGIN_IDS",
 	})
@@ -160,8 +160,6 @@ func buildContentTypeMapping(mapperConfig *config.Config, httpClient *http.Clien
 		var service content.DraftContentMapper
 
 		switch cfg.Mapper {
-		case "methode":
-			service = content.NewDraftContentMapperService(cfg.Endpoint, httpClient)
 		case "spark":
 			service = content.NewSparkDraftContentMapperService(cfg.Endpoint, httpClient)
 		default:

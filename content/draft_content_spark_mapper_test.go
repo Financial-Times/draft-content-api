@@ -18,7 +18,7 @@ func TestSparkMapper(t *testing.T) {
 	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
 	mappedBody := "{\"foo\":\"baz\"}"
-	server := mockSparkMapperHttpServer(t, http.StatusOK, nativeBody, mappedBody)
+	server := mockSparkMapperHTTPServer(t, http.StatusOK, nativeBody, mappedBody)
 
 	m := NewSparkDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
@@ -36,8 +36,8 @@ func TestSparkMapper(t *testing.T) {
 
 func TestSparkMapperError(t *testing.T) {
 	contentUUID := uuid.New().String()
-	nativeBody := "{\"foo\":\"bar\"}"
-	server := mockSparkMapperHttpServer(t, http.StatusServiceUnavailable, nativeBody, "")
+	nativeBody := "{\"foo\":\"bar2\"}"
+	server := mockSparkMapperHTTPServer(t, http.StatusServiceUnavailable, nativeBody, "")
 
 	m := NewSparkDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
@@ -53,7 +53,7 @@ func TestSparkMapperError(t *testing.T) {
 func TestSparkMapperClientError(t *testing.T) {
 	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
-	server := mockSparkMapperHttpServer(t, http.StatusBadRequest, nativeBody, "")
+	server := mockSparkMapperHTTPServer(t, http.StatusBadRequest, nativeBody, "")
 
 	m := NewSparkDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
@@ -71,7 +71,7 @@ func TestSparkMapperClientError(t *testing.T) {
 func TestSparkMapperBadContent(t *testing.T) {
 	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
-	server := mockSparkMapperHttpServer(t, http.StatusUnprocessableEntity, nativeBody, "")
+	server := mockSparkMapperHTTPServer(t, http.StatusUnprocessableEntity, nativeBody, "")
 
 	m := NewSparkDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
@@ -84,7 +84,7 @@ func TestSparkMapperBadContent(t *testing.T) {
 	assert.Nil(t, body)
 }
 
-func mockSparkMapperHttpServer(t *testing.T, status int, expectedBody string, response string) *httptest.Server {
+func mockSparkMapperHTTPServer(t *testing.T, status int, expectedBody string, response string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method, "HTTP method")
 		assert.Equal(t, "/validate", r.URL.Path)
@@ -96,6 +96,7 @@ func mockSparkMapperHttpServer(t *testing.T, status int, expectedBody string, re
 		assert.Equal(t, expectedBody, string(by), "payload")
 
 		w.WriteHeader(status)
-		w.Write([]byte(response))
+		_, err = w.Write([]byte(response))
+		assert.NoError(t, err)
 	}))
 }

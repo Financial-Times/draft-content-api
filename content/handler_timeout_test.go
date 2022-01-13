@@ -17,24 +17,22 @@ import (
 func TestReadTimeoutFromDraftContent(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
-	contentRWTestServer := newDraftContentRWTestServer(300*time.Millisecond, http.StatusOK, contentType, originIDMethodeTest)
-	mapperTestServer := newMethodeArticleMapperTestServer(0, http.StatusOK)
-	contentAPITestServer := newUppContentAPITestServer(0, http.StatusOK)
+	contentRWTestServer := newDraftContentRWTestServer(t, 300*time.Millisecond, http.StatusOK, contentTypeArticle, originIDcctTest)
+	contentAPITestServer := newUppContentAPITestServer(t, 0, http.StatusOK)
 
 	contentRWTestServer.On("EndpointCalled")
 
 	defer contentRWTestServer.server.Close()
-	defer mapperTestServer.server.Close()
 	defer contentAPITestServer.server.Close()
 
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
-	mapperService := NewDraftContentMapperService(mapperTestServer.server.URL, client)
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapperService))
+	mapperService := NewSparkDraftContentMapperService(contentAPITestServer.server.URL, client)
+	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(mapperService))
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
-	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
+	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
-	handler := NewHandler(uppApi, contentRWService, 150*time.Millisecond)
+	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond)
 
 	r := vestigo.NewRouter()
 
@@ -44,12 +42,14 @@ func TestReadTimeoutFromDraftContent(t *testing.T) {
 	defer server.Close()
 
 	resp, err := testRequest(server, contentUUID)
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
 
-	assert.True(t, mapperTestServer.AssertNotCalled(t, "EndpointCalled"))
 	assert.True(t, contentAPITestServer.AssertNotCalled(t, "EndpointCalled"))
 
 	contentRWTestServer.AssertExpectations(t)
@@ -58,26 +58,24 @@ func TestReadTimeoutFromDraftContent(t *testing.T) {
 func TestReadTimeoutFromUPPContent(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
-	contentRWTestServer := newDraftContentRWTestServer(10*time.Millisecond, http.StatusNotFound, contentType, originIDMethodeTest)
-	mapperTestServer := newMethodeArticleMapperTestServer(0*time.Millisecond, http.StatusOK)
-	contentAPITestServer := newUppContentAPITestServer(300*time.Millisecond, http.StatusOK)
+	contentRWTestServer := newDraftContentRWTestServer(t, 10*time.Millisecond, http.StatusNotFound, contentTypeArticle, originIDcctTest)
+	contentAPITestServer := newUppContentAPITestServer(t, 300*time.Millisecond, http.StatusOK)
 
 	contentRWTestServer.On("EndpointCalled")
 	contentAPITestServer.On("EndpointCalled")
 
 	defer contentRWTestServer.server.Close()
-	defer mapperTestServer.server.Close()
 	defer contentAPITestServer.server.Close()
 
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
-	mapperService := NewDraftContentMapperService(mapperTestServer.server.URL, client)
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapperService))
+	mapperService := NewSparkDraftContentMapperService(contentAPITestServer.server.URL, client)
+	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(mapperService))
 
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
-	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
+	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
-	handler := NewHandler(uppApi, contentRWService, 150*time.Millisecond)
+	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond)
 
 	r := vestigo.NewRouter()
 
@@ -87,49 +85,14 @@ func TestReadTimeoutFromUPPContent(t *testing.T) {
 	defer server.Close()
 
 	resp, err := testRequest(server, contentUUID)
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
-	mock.AssertExpectationsForObjects(t, contentRWTestServer, contentAPITestServer, mapperTestServer)
-}
-func TestReadTimeoutFromMethodeArticleMapper(t *testing.T) {
-	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
-
-	contentRWTestServer := newDraftContentRWTestServer(10*time.Millisecond, http.StatusOK, contentType, originIDMethodeTest)
-	mapperTestServer := newMethodeArticleMapperTestServer(300*time.Millisecond, http.StatusOK)
-	contentAPITestServer := newUppContentAPITestServer(0, http.StatusOK)
-
-	contentRWTestServer.On("EndpointCalled")
-	mapperTestServer.On("EndpointCalled")
-
-	defer contentRWTestServer.server.Close()
-	defer mapperTestServer.server.Close()
-	defer contentAPITestServer.server.Close()
-
-	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
-
-	mapperService := NewDraftContentMapperService(mapperTestServer.server.URL, client)
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapperService))
-
-	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
-	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
-
-	handler := NewHandler(uppApi, contentRWService, 150*time.Millisecond)
-
-	r := vestigo.NewRouter()
-
-	r.Get("/drafts/content/:uuid", handler.ReadContent)
-
-	server := httptest.NewServer(r)
-	defer server.Close()
-
-	resp, err := testRequest(server, contentUUID)
-	defer resp.Body.Close()
-
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
-	mock.AssertExpectationsForObjects(t, contentRWTestServer, contentAPITestServer, mapperTestServer)
+	mock.AssertExpectationsForObjects(t, contentRWTestServer, contentAPITestServer)
 }
 
 func testRequest(server *httptest.Server, contentUUID string) (*http.Response, error) {
@@ -140,25 +103,29 @@ func testRequest(server *httptest.Server, contentUUID string) (*http.Response, e
 func TestNativeWriteTimeout(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
-	contentRWTestServer := newDraftContentRWTestServer(300*time.Millisecond, http.StatusOK, contentType, originIDMethodeTest)
-	mapperTestServer := newMethodeArticleMapperTestServer(0*time.Millisecond, http.StatusOK)
-	contentAPITestServer := newUppContentAPITestServer(0*time.Millisecond, http.StatusOK)
+	contentRWTestServer := newDraftContentRWTestServer(t, 300*time.Millisecond, http.StatusOK, contentTypeArticle, originIDcctTest)
+	contentAPITestServer := newUppContentAPITestServer(t, 0*time.Millisecond, http.StatusOK)
+	AllowedOriginSystemIDValues = map[string]struct{}{
+		originIDcctTest: {},
+	}
+	AllowedContentTypes = map[string]struct{}{
+		contentTypeArticle: {},
+	}
 
 	contentRWTestServer.On("EndpointCalled")
 
 	defer contentRWTestServer.server.Close()
-	defer mapperTestServer.server.Close()
 	defer contentAPITestServer.server.Close()
 
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
-	mapperService := NewDraftContentMapperService(mapperTestServer.server.URL, client)
-	resolver := NewDraftContentMapperResolver(methodeOnlyResolverConfig(mapperService))
+	mapperService := NewSparkDraftContentMapperService(contentAPITestServer.server.URL, client)
+	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(mapperService))
 
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
-	uppApi := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
+	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
-	handler := NewHandler(uppApi, contentRWService, 150*time.Millisecond)
+	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond)
 
 	r := vestigo.NewRouter()
 
@@ -169,19 +136,21 @@ func TestNativeWriteTimeout(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodPut, server.URL+"/drafts/nativecontent/"+contentUUID, nil)
 	request.Header.Set(tidutils.TransactionIDHeader, testTID)
-	request.Header.Set(originSystemIdHeader, originIDMethodeTest)
-	request.Header.Set(contentTypeHeader, contentType)
+	request.Header.Set(originSystemIdHeader, originIDcctTest)
+	request.Header.Set(contentTypeHeader, contentTypeArticle)
 
 	resp, err := client.Do(request)
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
 	contentRWTestServer.AssertExpectations(t)
 }
 
-func newDraftContentRWTestServer(inducedDelay time.Duration, responseStatus int, contentType string, originId string) *mockServer {
-
+func newDraftContentRWTestServer(t *testing.T, inducedDelay time.Duration, responseStatus int, contentType string, originID string) *mockServer {
 	m := &mockServer{}
 	m.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -197,9 +166,10 @@ func newDraftContentRWTestServer(inducedDelay time.Duration, responseStatus int,
 		case http.MethodGet:
 			logrus.Info("Processing GET test request")
 			w.Header().Set("Content-Type", contentType)
-			w.Header().Set("X-Origin-System-Id", originId)
+			w.Header().Set("X-Origin-System-Id", originID)
 			w.WriteHeader(responseStatus)
-			w.Write([]byte(fromMaMContent))
+			_, err := w.Write([]byte(fromUppContent))
+			assert.NoError(t, err)
 			return
 		}
 
@@ -208,33 +178,17 @@ func newDraftContentRWTestServer(inducedDelay time.Duration, responseStatus int,
 	return m
 }
 
-func newMethodeArticleMapperTestServer(inducedDelay time.Duration, responseStatus int) *mockServer {
-
+func newUppContentAPITestServer(t *testing.T, inducedDelay time.Duration, responseStatus int) *mockServer {
 	m := &mockServer{}
 	m.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if inducedDelay > 0 {
 			m.EndpointCalled()
 			time.Sleep(inducedDelay)
 		}
-
-		w.Header().Set("Content-Type", contentType)
+		w.Header().Set("Content-Type", contentTypeArticle)
 		w.WriteHeader(responseStatus)
-		w.Write([]byte(fromMaMContent))
-	}))
-
-	return m
-}
-
-func newUppContentAPITestServer(inducedDelay time.Duration, responseStatus int) *mockServer {
-	m := &mockServer{}
-	m.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if inducedDelay > 0 {
-			m.EndpointCalled()
-			time.Sleep(inducedDelay)
-		}
-		w.Header().Set("Content-Type", contentType)
-		w.WriteHeader(responseStatus)
-		w.Write([]byte(fromUppContent))
+		_, err := w.Write([]byte(fromUppContent))
+		assert.NoError(t, err)
 	}))
 
 	return m
