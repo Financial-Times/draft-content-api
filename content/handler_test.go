@@ -39,7 +39,7 @@ func TestHappyRead(t *testing.T) {
 	rw := &mockDraftContentRW{}
 	rw.On("Read", mock.Anything, contentUUID).Return(ioutil.NopCloser(strings.NewReader(fromUppContent)), nil)
 
-	h := NewHandler(nil, rw, testTimeout)
+	h := NewHandler(nil, rw, testTimeout, "")
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -63,6 +63,7 @@ func TestHappyRead(t *testing.T) {
 
 func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
+	mainImageUUID := "fba9884e-0756-11e8-0074-38e932af9738"
 
 	rw := &mockDraftContentRW{}
 	rw.On("Read", mock.Anything, contentUUID).Return(nil, ErrDraftNotFound)
@@ -71,7 +72,7 @@ func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 	defer cAPIServerMock.Close()
 	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
-	h := NewHandler(cAPI, rw, testTimeout)
+	h := NewHandler(cAPI, rw, testTimeout, "http://api.ft.com/content/")
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -105,7 +106,7 @@ func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 	assert.NotEmpty(t, actualBody)
 
 	assert.Equal(t, "Article", actual["type"])
-
+	assert.Equal(t, mainImageUUID, actual["mainImage"])
 	rw.AssertExpectations(t)
 }
 
@@ -115,7 +116,7 @@ func TestReadNoBackOffForOtherErrors(t *testing.T) {
 	rw := &mockDraftContentRW{}
 	rw.On("Read", mock.Anything, contentUUID).Return(nil, errors.New("this should never happen"))
 
-	h := NewHandler(nil, rw, testTimeout)
+	h := NewHandler(nil, rw, testTimeout, "")
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -145,7 +146,7 @@ func TestReadNotFoundAnywhere(t *testing.T) {
 	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
 
 	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-	h := NewHandler(cAPI, rw, testTimeout)
+	h := NewHandler(cAPI, rw, testTimeout, "")
 
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
@@ -172,7 +173,7 @@ func TestReadContentAPI504(t *testing.T) {
 	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
 
 	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-	h := NewHandler(cAPI, rw, testTimeout)
+	h := NewHandler(cAPI, rw, testTimeout, "")
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -194,7 +195,7 @@ func TestReadInvalidURL(t *testing.T) {
 	rw := &mockDraftContentRW{}
 	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
 	cAPI := NewContentAPI(":#", testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-	h := NewHandler(cAPI, rw, testTimeout)
+	h := NewHandler(cAPI, rw, testTimeout, "")
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -219,7 +220,7 @@ func TestReadConnectionError(t *testing.T) {
 	cAPIServerMock.Close()
 
 	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-	h := NewHandler(cAPI, rw, testTimeout)
+	h := NewHandler(cAPI, rw, testTimeout, "")
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -257,7 +258,7 @@ func TestWriteCCTNativeContent(t *testing.T) {
 	/* mock.AnythingOfType(...) doesn't work for interfaces: https://github.com/stretchr/testify/issues/519 */
 	rw.On("Write", mock.Anything, contentUUID, &draftBody, headers).Return(nil)
 
-	h := NewHandler(nil, &rw, testTimeout)
+	h := NewHandler(nil, &rw, testTimeout, "")
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -297,7 +298,7 @@ func TestWriteSparkNativeContent(t *testing.T) {
 	/* mock.AnythingOfType(...) doesn't work for interfaces: https://github.com/stretchr/testify/issues/519 */
 	rw.On("Write", mock.Anything, contentUUID, &draftBody, headers).Return(nil)
 
-	h := NewHandler(nil, &rw, testTimeout)
+	h := NewHandler(nil, &rw, testTimeout, "")
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -319,7 +320,7 @@ func TestWriteSparkNativeContent(t *testing.T) {
 func TestWriteNativeContentInvalidUUID(t *testing.T) {
 	draftBody := "{\"foo\":\"bar\"}"
 
-	h := NewHandler(nil, nil, testTimeout)
+	h := NewHandler(nil, nil, testTimeout, "")
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -342,7 +343,7 @@ func TestWriteNativeContentWithoutOriginSystemId(t *testing.T) {
 	contentUUID := uuid.New().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
-	h := NewHandler(nil, nil /*&rw*/, testTimeout)
+	h := NewHandler(nil, nil /*&rw*/, testTimeout, "")
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -364,7 +365,7 @@ func TestWriteNativeContentInvalidOriginSystemId(t *testing.T) {
 	contentUUID := uuid.New().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
-	h := NewHandler(nil, nil, testTimeout)
+	h := NewHandler(nil, nil, testTimeout, "")
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -396,7 +397,7 @@ func TestWriteNativeContentInvalidContentType(t *testing.T) {
 		contentTypeArticle: {},
 	}
 
-	h := NewHandler(nil, nil, testTimeout)
+	h := NewHandler(nil, nil, testTimeout, "")
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -431,7 +432,7 @@ func TestWriteNativeContentWriteError(t *testing.T) {
 	rw := mockDraftContentRW{}
 	rw.On("Write", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test error from writer"))
 
-	h := NewHandler(nil, &rw, testTimeout)
+	h := NewHandler(nil, &rw, testTimeout, "")
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 

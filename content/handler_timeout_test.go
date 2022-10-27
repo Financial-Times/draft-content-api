@@ -32,7 +32,7 @@ func TestReadTimeoutFromDraftContent(t *testing.T) {
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
 	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
-	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond)
+	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond, "")
 
 	r := vestigo.NewRouter()
 
@@ -75,7 +75,7 @@ func TestReadTimeoutFromUPPContent(t *testing.T) {
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
 	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
-	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond)
+	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond, "")
 
 	r := vestigo.NewRouter()
 
@@ -125,7 +125,7 @@ func TestNativeWriteTimeout(t *testing.T) {
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
 	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
-	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond)
+	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond, "")
 
 	r := vestigo.NewRouter()
 

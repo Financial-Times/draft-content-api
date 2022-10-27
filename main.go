@@ -127,7 +127,7 @@ func main() {
 
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey, httpClient)
 
-		contentHandler := content.NewHandler(cAPI, draftContentRWService, timeout)
+		contentHandler := content.NewHandler(cAPI, draftContentRWService, timeout, *contentEndpoint)
 		healthService, err := health.NewHealthService(*appSystemCode, *appName, appDescription, draftContentRWService, cAPI,
 			mapperConfig, extractServices(contentTypeMapping))
 		if err != nil {
