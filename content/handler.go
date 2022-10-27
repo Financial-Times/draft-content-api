@@ -187,7 +187,6 @@ func (h *Handler) readContentFromUPP(ctx context.Context, w http.ResponseWriter,
 		writeMessage(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	err = transformUPPContent(uppContent)
 
 	if err != nil {
@@ -264,10 +263,10 @@ func writeMessage(w http.ResponseWriter, errMsg string, status int) {
 }
 
 // Function modifies these fields/values;
-//  - id -> uuid, removing the http prefix
-//  - bodyXML -> body, keeping value intact
-//  - type value, removing http prefix
-//  - brands value, adding an object wrapper with id field having the same value
+//   - id -> uuid, removing the http prefix
+//   - bodyXML -> body, keeping value intact
+//   - type value, removing http prefix
+//   - brands value, adding an object wrapper with id field having the same value
 func transformUPPContent(content map[string]interface{}) error {
 
 	// --- uuid
@@ -324,6 +323,17 @@ func transformUPPContent(content map[string]interface{}) error {
 
 		content["brands"] = idBrandTuples
 
+		if mainImage, present := content["mainImage"]; present {
+			imageMap, assertion := mainImage.(map[string]interface{})
+			if !assertion {
+				return fmt.Errorf("invalid mainImage entry, was expecting a map, got: %s", mainImage)
+			}
+			if id, exists := imageMap["id"]; exists {
+				content["mainImage"] = id
+			} else {
+				return fmt.Errorf("invalid mainImage entry, was expecting an id-value pair")
+			}
+		}
 	}
 
 	return nil

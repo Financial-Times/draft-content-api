@@ -63,6 +63,7 @@ func TestHappyRead(t *testing.T) {
 
 func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
+	mainImage := "http://api.ft.com/content/fba9884e-0756-11e8-0074-38e932af9738"
 
 	rw := &mockDraftContentRW{}
 	rw.On("Read", mock.Anything, contentUUID).Return(nil, ErrDraftNotFound)
@@ -105,6 +106,7 @@ func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 	assert.NotEmpty(t, actualBody)
 
 	assert.Equal(t, "Article", actual["type"])
+	assert.Equal(t, mainImage, actual["mainImage"])
 
 	rw.AssertExpectations(t)
 }
