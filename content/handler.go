@@ -37,8 +37,8 @@ type Handler struct {
 	timeout       time.Duration
 }
 
-func NewHandler(uppApi ContentAPI, draftContentRW DraftContentRW, timeout time.Duration) *Handler {
-	return &Handler{uppApi, draftContentRW, timeout}
+func NewHandler(uppAPI ContentAPI, draftContentRW DraftContentRW, timeout time.Duration) *Handler {
+	return &Handler{uppAPI, draftContentRW, timeout}
 }
 
 func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
@@ -187,8 +187,7 @@ func (h *Handler) readContentFromUPP(ctx context.Context, w http.ResponseWriter,
 		writeMessage(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	err = transformUPPContent(uppContent)
+	err = h.transformUPPContent(uppContent)
 
 	if err != nil {
 		readContentUPPLog.WithError(err).Error("Failed transforming UPP response")
@@ -264,11 +263,12 @@ func writeMessage(w http.ResponseWriter, errMsg string, status int) {
 }
 
 // Function modifies these fields/values;
-//  - id -> uuid, removing the http prefix
-//  - bodyXML -> body, keeping value intact
-//  - type value, removing http prefix
-//  - brands value, adding an object wrapper with id field having the same value
-func transformUPPContent(content map[string]interface{}) error {
+//   - id -> uuid, removing the http prefix
+//   - bodyXML -> body, keeping value intact
+//   - type value, removing http prefix
+//   - brands value, adding an object wrapper with id field having the same value
+//   - mainImage, converting to string and removing the endpoint prefix
+func (h *Handler) transformUPPContent(content map[string]interface{}) error {
 
 	// --- uuid
 	if id, present := content["id"]; present {
@@ -324,6 +324,19 @@ func transformUPPContent(content map[string]interface{}) error {
 
 		content["brands"] = idBrandTuples
 
+		if mainImage, present := content["mainImage"]; present {
+			imageMap, assertion := mainImage.(map[string]interface{})
+			if !assertion {
+				return fmt.Errorf("invalid mainImage entry, was expecting a map, got: %s", mainImage)
+			}
+			if id, exists := imageMap["id"]; exists {
+				idString := id.(string)
+				imageUUID := idString[strings.LastIndex(idString, "/")+1:]
+				content["mainImage"] = imageUUID
+			} else {
+				return fmt.Errorf("invalid mainImage entry, was expecting an id-value pair")
+			}
+		}
 	}
 
 	return nil
