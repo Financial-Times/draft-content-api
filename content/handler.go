@@ -187,7 +187,7 @@ func (h *Handler) readContentFromUPP(ctx context.Context, w http.ResponseWriter,
 		writeMessage(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	log.WithField("content", uppContent).Info("Received content from document store...")
 	err = transformUPPContent(uppContent)
 
 	if err != nil {
@@ -264,10 +264,10 @@ func writeMessage(w http.ResponseWriter, errMsg string, status int) {
 }
 
 // Function modifies these fields/values;
-//  - id -> uuid, removing the http prefix
-//  - bodyXML -> body, keeping value intact
-//  - type value, removing http prefix
-//  - brands value, adding an object wrapper with id field having the same value
+//   - id -> uuid, removing the http prefix
+//   - bodyXML -> body, keeping value intact
+//   - type value, removing http prefix
+//   - brands value, adding an object wrapper with id field having the same value
 func transformUPPContent(content map[string]interface{}) error {
 
 	// --- uuid
