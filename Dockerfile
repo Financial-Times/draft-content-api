@@ -3,6 +3,9 @@ FROM golang:1
 ENV PROJECT=draft-content-api
 ENV BUILDINFO_PACKAGE="github.com/Financial-Times/service-status-go/buildinfo."
 
+ARG GITHUB_USERNAME
+ARG GITHUB_TOKEN
+
 COPY . /${PROJECT}/
 WORKDIR /${PROJECT}
 
@@ -13,6 +16,8 @@ RUN VERSION="version=$(git describe --tag --always 2> /dev/null)" \
   && REVISION="revision=$(git rev-parse HEAD)" \
   && BUILDER="builder=$(go version)" \
   && LDFLAGS="-s -w -X '"${BUILDINFO_PACKAGE}$VERSION"' -X '"${BUILDINFO_PACKAGE}$DATETIME"' -X '"${BUILDINFO_PACKAGE}$REPOSITORY"' -X '"${BUILDINFO_PACKAGE}$REVISION"' -X '"${BUILDINFO_PACKAGE}$BUILDER"'" \
+  && echo "machine github.com login $GITHUB_USERNAME password $GITHUB_TOKEN" > ~/.netrc \
+  && GOPRIVATE="github.com/Financial-Times" \
   && echo "Build flags: $LDFLAGS" \
   && CGO_ENABLED=0 go build -mod=readonly -a -o /artifacts/${PROJECT} -ldflags="${LDFLAGS}" 
 
