@@ -268,6 +268,7 @@ func writeMessage(w http.ResponseWriter, errMsg string, status int) {
 //  - bodyXML -> body, keeping value intact
 //  - type value, removing http prefix
 //  - brands value, adding an object wrapper with id field having the same value
+//  - annotations by removing it
 func transformUPPContent(content map[string]interface{}) error {
 
 	// --- uuid
@@ -324,6 +325,11 @@ func transformUPPContent(content map[string]interface{}) error {
 
 		content["brands"] = idBrandTuples
 
+	}
+
+	// --- annotation
+	if _, present := content["annotations"]; present {
+		delete(content, "annotations")
 	}
 
 	return nil
