@@ -42,7 +42,7 @@ spec:
           valueFrom:
             configMapKeyRef:
               name: global-config
-              key: content-endpoint
+              key: internal-content-endpoint
         - name: APP_TIMEOUT
           valueFrom:
             configMapKeyRef:
