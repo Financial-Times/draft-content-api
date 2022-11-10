@@ -187,6 +187,7 @@ func (h *Handler) readContentFromUPP(ctx context.Context, w http.ResponseWriter,
 		writeMessage(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	err = h.transformUPPContent(uppContent)
 
 	if err != nil {
@@ -268,6 +269,7 @@ func writeMessage(w http.ResponseWriter, errMsg string, status int) {
 //   - type value, removing http prefix
 //   - brands value, adding an object wrapper with id field having the same value
 //   - mainImage, converting to string and removing the endpoint prefix
+//   - annotations by removing it
 //
 //nolint:gocognit
 func (h *Handler) transformUPPContent(content map[string]interface{}) error {
@@ -340,6 +342,9 @@ func (h *Handler) transformUPPContent(content map[string]interface{}) error {
 			}
 		}
 	}
+
+	// --- annotation
+	delete(content, "annotations")
 
 	return nil
 
