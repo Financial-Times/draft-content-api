@@ -2,34 +2,35 @@ package content
 
 import (
 	"fmt"
+
 	"github.com/sirupsen/logrus"
 )
 
-// DraftContentMapperResolver manages the mappers available for a given originId/content-type pair.
-type DraftContentMapperResolver interface {
-	// Resolves and returns a DraftContentMapper implementation if present.
-	MapperForContentType(contentType string) (DraftContentMapper, error)
+// DraftContentValidatorResolver manages the validators available for a given originId/content-type pair.
+type DraftContentValidatorResolver interface {
+	// ValidatorForContentType Resolves and returns a DraftContentValidator implementation if present.
+	ValidatorForContentType(contentType string) (DraftContentValidator, error)
 }
 
-// NewDraftContentMapperResolver returns a DraftContentMapperResolver implementation
-func NewDraftContentMapperResolver(contentTypeToMapper map[string]DraftContentMapper) DraftContentMapperResolver {
-	return &draftContentMapperResolver{contentTypeToMapper}
+// NewDraftContentValidatorResolver returns a DraftContentValidatorResolver implementation
+func NewDraftContentValidatorResolver(contentTypeToValidator map[string]DraftContentValidator) DraftContentValidatorResolver {
+	return &draftContentValidatorResolver{contentTypeToValidator}
 }
 
-type draftContentMapperResolver struct {
-	contentTypeToMapper map[string]DraftContentMapper
+type draftContentValidatorResolver struct {
+	contentTypeToValidator map[string]DraftContentValidator
 }
 
-// MapperForContentType implementation checks the content-type mapping for a mapper resolution.
-func (resolver *draftContentMapperResolver) MapperForContentType(contentType string) (DraftContentMapper, error) {
+// ValidatorForContentType implementation checks the content-type validation for a validator resolution.
+func (resolver *draftContentValidatorResolver) ValidatorForContentType(contentType string) (DraftContentValidator, error) {
 
 	contentType = stripMediaTypeParameters(contentType)
-	mapper, found := resolver.contentTypeToMapper[contentType]
+	validator, found := resolver.contentTypeToValidator[contentType]
 
 	if !found {
-		logrus.Infof("contentTypeMap: %v", resolver.contentTypeToMapper)
-		return nil, fmt.Errorf("no mappers configured for contentType: %s", contentType)
+		logrus.Infof("contentTypeMap: %v", resolver.contentTypeToValidator)
+		return nil, fmt.Errorf("no validator configured for contentType: %s", contentType)
 	}
 
-	return mapper, nil
+	return validator, nil
 }

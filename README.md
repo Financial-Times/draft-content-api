@@ -38,7 +38,7 @@ Options:
         --content-endpoint="..."                  Endpoint to get content from CAPI ($CONTENT_ENDPOINT)
         --content-api-key="..."                   API key to access CAPI ($CAPI_APIKEY)
         --api-yml="..."                           Location of the API Swagger YML file ($API_YML)
-        --mapper-yml="..."                        Location of the mapper YML file (MAPPER_YML)
+        --validator-yml="..."                     Location of the validator YML file (VALIDATOR_YML)
         --origin-IDs="..."                        Allowed originID header ($ORIGIN_IDS)
 
 3. Test:
@@ -92,7 +92,7 @@ Admin endpoints are:
 
 The `/__health` and `/__gtg` check the availability of:
 * the generic R/W service (where draft content is stored in native format)
-* the draft content mapper service (where draft content is mapped from native to UPP format)
+* the draft content validator service (where draft content is validated for UPP format)
 * the UPP Content API (where published content is stored)
 
 

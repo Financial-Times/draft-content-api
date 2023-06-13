@@ -19,12 +19,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//TODO: Remove logrus
+//TODO: Replace mapper with validator https://github.com/Financial-Times/draft-content-api/pull/39#discussion_r782967305
+
 const (
-	appDescription = "PAC Draft Content"
+	defaultAppName        = "draft-content-api"
+	defaultAppDescription = "PAC Draft Content"
 )
 
 func main() {
-	app := cli.App("draft-content-api", appDescription)
+	app := cli.App(defaultAppName, defaultAppDescription)
 
 	appSystemCode := app.String(cli.StringOpt{
 		Name:   "app-system-code",
@@ -35,7 +39,7 @@ func main() {
 
 	appName := app.String(cli.StringOpt{
 		Name:   "app-name",
-		Value:  "draft-content-api",
+		Value:  defaultAppName,
 		Desc:   "Application name",
 		EnvVar: "APP_NAME",
 	})
@@ -89,11 +93,11 @@ func main() {
 		EnvVar: "ORIGIN_IDS",
 	})
 
-	mapperYml := app.String(cli.StringOpt{
-		Name:   "mapper-yml",
+	validatorYml := app.String(cli.StringOpt{
+		Name:   "validator-yml",
 		Value:  "./config.yml",
-		Desc:   "Location of the Mapper configuration YML file.",
-		EnvVar: "MAPPER_YML",
+		Desc:   "Location of the Validator configuration YML file.",
+		EnvVar: "VALIDATOR_YML",
 	})
 
 	log.SetFormatter(&log.JSONFormatter{})
@@ -109,7 +113,7 @@ func main() {
 			return
 		}
 
-		mapperConfig, err := config.ReadConfig(*mapperYml)
+		validatorConfig, err := config.ReadConfig(*validatorYml)
 		if err != nil {
 			log.WithError(err).Fatal("unable to read r/w YAML configuration")
 		}
@@ -118,18 +122,18 @@ func main() {
 
 		content.AllowedOriginSystemIDValues = getOriginID(*originIDs)
 
-		contentTypeMapping := buildContentTypeMapping(mapperConfig, httpClient)
+		contentTypeMapping := buildContentTypeMapping(validatorConfig, httpClient)
 
-		resolver := content.NewDraftContentMapperResolver(contentTypeMapping)
+		resolver := content.NewDraftContentValidatorResolver(contentTypeMapping)
 		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint, resolver, httpClient)
 
-		content.AllowedContentTypes = getAllowedContentType(mapperConfig)
+		content.AllowedContentTypes = getAllowedContentType(validatorConfig)
 
 		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey, httpClient)
 
 		contentHandler := content.NewHandler(cAPI, draftContentRWService, timeout)
-		healthService, err := health.NewHealthService(*appSystemCode, *appName, appDescription, draftContentRWService, cAPI,
-			mapperConfig, extractServices(contentTypeMapping))
+		healthService, err := health.NewHealthService(*appSystemCode, *appName, defaultAppDescription, draftContentRWService, cAPI,
+			validatorConfig, extractServices(contentTypeMapping))
 		if err != nil {
 			log.WithError(err).Fatal("Unable to create health service")
 		}
@@ -143,7 +147,7 @@ func main() {
 	}
 }
 
-func extractServices(dcm map[string]content.DraftContentMapper) []health.ExternalService {
+func extractServices(dcm map[string]content.DraftContentValidator) []health.ExternalService {
 	result := make([]health.ExternalService, 0, len(dcm))
 
 	for _, value := range dcm {
@@ -153,21 +157,21 @@ func extractServices(dcm map[string]content.DraftContentMapper) []health.Externa
 	return result
 }
 
-func buildContentTypeMapping(mapperConfig *config.Config, httpClient *http.Client) map[string]content.DraftContentMapper {
-	contentTypeMapping := map[string]content.DraftContentMapper{}
+func buildContentTypeMapping(validatorConfig *config.Config, httpClient *http.Client) map[string]content.DraftContentValidator {
+	contentTypeMapping := map[string]content.DraftContentValidator{}
 
-	for contentType, cfg := range mapperConfig.ContentTypes {
-		var service content.DraftContentMapper
+	for contentType, cfg := range validatorConfig.ContentTypes {
+		var service content.DraftContentValidator
 
-		switch cfg.Mapper {
+		switch cfg.Validator {
 		case "spark":
-			service = content.NewSparkDraftContentMapperService(cfg.Endpoint, httpClient)
+			service = content.NewSparkDraftContentValidatorService(cfg.Endpoint, httpClient)
 		default:
-			log.WithField("Mapper", cfg.Mapper).Fatal("Unknown mapper")
+			log.WithField("Validator", cfg.Validator).Fatal("Unknown validator")
 		}
 		contentTypeMapping[contentType] = service
 
-		log.WithField("Content-Type", contentType).WithField("Endpoint", cfg.Endpoint).WithField("Mapper", cfg.Mapper).Info("added mapper service")
+		log.WithField("Content-Type", contentType).WithField("Endpoint", cfg.Endpoint).WithField("Validator", cfg.Validator).Info("added validator service")
 	}
 
 	return contentTypeMapping

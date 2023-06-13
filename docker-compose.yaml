@@ -8,7 +8,7 @@ services:
         APP_PORT: "8080"
         DRAFT_CONTENT_RW_ENDPOINT: "http://generic-rw-aurora:8080"
         API_YML: "./api.yml"
-        MAPPER_YML: "./config.yml"
+        VALIDATOR_YML: "./config.yml"
     ports:
         - 8080:8080
     depends_on:

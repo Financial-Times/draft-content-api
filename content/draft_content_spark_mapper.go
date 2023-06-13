@@ -1,34 +1,37 @@
 package content
 
 import (
-	"net/http"
 	"context"
-	"io"
-	"io/ioutil"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+
 	"github.com/Financial-Times/draft-content-api/platform"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	log "github.com/sirupsen/logrus"
 )
 
-type sparkDraftContentMapper struct {
- *platform.Service
+type sparkDraftContentValidator struct {
+	*platform.Service
 }
 
-func NewSparkDraftContentMapperService(endpoint string, httpClient *http.Client) DraftContentMapper {
+func NewSparkDraftContentValidatorService(endpoint string, httpClient *http.Client) DraftContentValidator {
 	s := platform.NewService(endpoint, httpClient)
-	return &sparkDraftContentMapper{s}
+	return &sparkDraftContentValidator{s}
 }
 
-
-func (mapper *sparkDraftContentMapper) MapNativeContent(ctx context.Context, contentUUID string,
-	nativeBody io.Reader, contentType string) (io.ReadCloser, error) {
+func (validator *sparkDraftContentValidator) Validate(
+	ctx context.Context,
+	contentUUID string,
+	nativeBody io.Reader,
+	contentType string,
+) (io.ReadCloser, error) {
 
 	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
 	mapLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
 
-	req, err := newHttpRequest(ctx, "POST", mapper.Endpoint()+"/validate", nativeBody)
+	req, err := newHttpRequest(ctx, "POST", validator.Endpoint()+"/validate", nativeBody)
 
 	if err != nil {
 		mapLog.WithError(err).Error("Error in creating the HTTP request to the UPP Validator")
@@ -36,7 +39,7 @@ func (mapper *sparkDraftContentMapper) MapNativeContent(ctx context.Context, con
 	}
 	req.Header.Set("Content-Type", contentType)
 
-	resp, err := mapper.HTTPClient().Do(req)
+	resp, err := validator.HTTPClient().Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -50,33 +53,48 @@ func (mapper *sparkDraftContentMapper) MapNativeContent(ctx context.Context, con
 		fallthrough
 	case http.StatusBadRequest: // json schema validation has failed
 		defer resp.Body.Close()
-		responseBytes, err := ioutil.ReadAll(resp.Body)
+		responseBytes, err := io.ReadAll(resp.Body)
 
 		if err != nil {
-			return nil, MapperError{resp.StatusCode,
-				fmt.Sprintf("Validation has failed for uuid: %s but couldn't consume response body, error: %v",
-					contentUUID, err)}
+			return nil, ValidatorError{resp.StatusCode,
+				fmt.Sprintf(
+					"Validation has failed for uuid: %s but couldn't consume response body, error: %v",
+					contentUUID,
+					err,
+				),
+			}
 		}
 
 		responseBody := make(map[string]interface{})
 		err = json.Unmarshal(responseBytes, &responseBody)
 
 		if err != nil {
-			return nil, MapperError{resp.StatusCode,
-				fmt.Sprintf("Validation has failed for uuid: %s but couldn't unmarshal response body, error: %v",
-					contentUUID, err)}
+			return nil, ValidatorError{resp.StatusCode,
+				fmt.Sprintf(
+					"Validation has failed for uuid: %s but couldn't unmarshal response body, error: %v",
+					contentUUID,
+					err,
+				),
+			}
 		}
 
-		mapperErrorMessage := fmt.Sprintf("Content with uuid: %s, content-type: %s has failed validation/mapping with reason: %v",
-			contentUUID, contentType, responseBody["error"])
+		errorMessage := fmt.Sprintf(
+			"Content with uuid: %s, content-type: %s has failed validation/mapping with reason: %v",
+			contentUUID,
+			contentType,
+			responseBody["error"],
+		)
 
-		return nil, MapperError{resp.StatusCode, mapperErrorMessage}
+		return nil, ValidatorError{resp.StatusCode, errorMessage}
 
 	default:
 		resp.Body.Close()
-		return nil, MapperError{resp.StatusCode,
-			fmt.Sprintf("UPP Validator returned an unexpected HTTP status code in write operation: %v",
-				resp.StatusCode)}
+		return nil, ValidatorError{resp.StatusCode,
+			fmt.Sprintf(
+				"UPP Validator returned an unexpected HTTP status code in write operation: %v",
+				resp.StatusCode,
+			),
+		}
 	}
 
 }

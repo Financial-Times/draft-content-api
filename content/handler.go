@@ -55,7 +55,7 @@ func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err == ErrDraftNotMappable {
+	if err == ErrDraftNotValid {
 		writeMessage(w, errorMessageForRead(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 		return
 	}

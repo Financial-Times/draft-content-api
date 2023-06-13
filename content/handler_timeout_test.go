@@ -27,8 +27,8 @@ func TestReadTimeoutFromDraftContent(t *testing.T) {
 
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
-	mapperService := NewSparkDraftContentMapperService(contentAPITestServer.server.URL, client)
-	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(mapperService))
+	validatorService := NewSparkDraftContentValidatorService(contentAPITestServer.server.URL, client)
+	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validatorService))
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
 	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
@@ -69,8 +69,8 @@ func TestReadTimeoutFromUPPContent(t *testing.T) {
 
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
-	mapperService := NewSparkDraftContentMapperService(contentAPITestServer.server.URL, client)
-	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(mapperService))
+	validatorService := NewSparkDraftContentValidatorService(contentAPITestServer.server.URL, client)
+	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validatorService))
 
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
 	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
@@ -119,8 +119,8 @@ func TestNativeWriteTimeout(t *testing.T) {
 
 	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
 
-	mapperService := NewSparkDraftContentMapperService(contentAPITestServer.server.URL, client)
-	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(mapperService))
+	validatorService := NewSparkDraftContentValidatorService(contentAPITestServer.server.URL, client)
+	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validatorService))
 
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
 	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)

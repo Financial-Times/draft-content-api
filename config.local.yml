@@ -1,15 +1,15 @@
 content-types:
   "application/vnd.ft-upp-live-blog-post+json":
-    mapper: "spark"
+    validator: "spark"
     end-point: "http://localhost:8001"
   "application/vnd.ft-upp-live-blog-package+json":
-    mapper: "spark"
+    validator: "spark"
     end-point: "http://localhost:8002"    
   "application/vnd.ft-upp-article+json":
-    mapper: "spark"
+    validator: "spark"
     end-point: "http://localhost:8003"
   "application/vnd.ft-upp-content-placeholder+json":
-    mapper: "spark"
+    validator: "spark"
     end-point: "http://localhost:8004"
 end-point-health-checks:
   "http://localhost:8001":

@@ -1,6 +1,6 @@
 module github.com/Financial-Times/draft-content-api
 
-go 1.17
+go 1.20
 
 require (
 	github.com/Financial-Times/api-endpoint v1.0.0
@@ -17,8 +17,8 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20161128210544-1f30fe9094a5
 	github.com/sirupsen/logrus v1.0.2-0.20170713114250-a3f95b5c4235
 	github.com/stretchr/testify v1.5.1
-	golang.org/x/net v0.0.0-20170719084000-02ac38e2528f // indirect
-	golang.org/x/sys v0.0.0-20170718161335-cd2c276457ed // indirect
+	golang.org/x/net v0.0.0-20210610124326-52da8fb2a613 // indirect
+	golang.org/x/sys v0.0.0-20210423082822-04245dca01da // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.3.0
 )

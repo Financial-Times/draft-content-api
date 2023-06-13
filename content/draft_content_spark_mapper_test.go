@@ -2,6 +2,7 @@ package content
 
 import (
 	"context"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -14,68 +15,68 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSparkMapper(t *testing.T) {
+func TestSparkValidator(t *testing.T) {
 	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
-	mappedBody := "{\"foo\":\"baz\"}"
-	server := mockSparkMapperHTTPServer(t, http.StatusOK, nativeBody, mappedBody)
+	expectedBody := "{\"foo\":\"baz\"}"
+	server := mockSparkValidatorHTTPServer(t, http.StatusOK, nativeBody, expectedBody)
 
-	m := NewSparkDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	m := NewSparkDraftContentValidatorService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
-	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID),
+	body, err := m.Validate(tidutils.TransactionAwareContext(context.Background(), testTID),
 		contentUUID,
-		ioutil.NopCloser(strings.NewReader(nativeBody)),
+		io.NopCloser(strings.NewReader(nativeBody)),
 		"application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
 
 	assert.NoError(t, err)
 	defer body.Close()
-	actualContent, err := ioutil.ReadAll(body)
+	actualContent, err := io.ReadAll(body)
 	assert.NoError(t, err)
-	assert.Equal(t, mappedBody, string(actualContent), "mapped content")
+	assert.Equal(t, expectedBody, string(actualContent), "mapped content")
 }
 
-func TestSparkMapperError(t *testing.T) {
+func TestSparkValidatorError(t *testing.T) {
 	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar2\"}"
-	server := mockSparkMapperHTTPServer(t, http.StatusServiceUnavailable, nativeBody, "")
+	server := mockSparkValidatorHTTPServer(t, http.StatusServiceUnavailable, nativeBody, "")
 
-	m := NewSparkDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	m := NewSparkDraftContentValidatorService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
-	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID),
+	body, err := m.Validate(tidutils.TransactionAwareContext(context.Background(), testTID),
 		contentUUID,
-		ioutil.NopCloser(strings.NewReader(nativeBody)),
+		io.NopCloser(strings.NewReader(nativeBody)),
 		"application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
 
 	assert.Error(t, err)
 	assert.Nil(t, body)
 }
 
-func TestSparkMapperClientError(t *testing.T) {
+func TestSparkValidatorClientError(t *testing.T) {
 	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
-	server := mockSparkMapperHTTPServer(t, http.StatusBadRequest, nativeBody, "")
+	server := mockSparkValidatorHTTPServer(t, http.StatusBadRequest, nativeBody, "")
 
-	m := NewSparkDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	m := NewSparkDraftContentValidatorService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
-	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID),
+	body, err := m.Validate(tidutils.TransactionAwareContext(context.Background(), testTID),
 		contentUUID,
 		ioutil.NopCloser(strings.NewReader(nativeBody)),
 		"application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
 
 	assert.Error(t, err)
 	assert.Nil(t, body)
-	assert.IsType(t, MapperError{}, err)
-	assert.Equal(t, http.StatusBadRequest, err.(MapperError).MapperStatusCode())
+	assert.IsType(t, ValidatorError{}, err)
+	assert.Equal(t, http.StatusBadRequest, err.(ValidatorError).StatusCode())
 }
 
-func TestSparkMapperBadContent(t *testing.T) {
+func TestSparkValidatorBadContent(t *testing.T) {
 	contentUUID := uuid.New().String()
 	nativeBody := "{\"foo\":\"bar\"}"
-	server := mockSparkMapperHTTPServer(t, http.StatusUnprocessableEntity, nativeBody, "")
+	server := mockSparkValidatorHTTPServer(t, http.StatusUnprocessableEntity, nativeBody, "")
 
-	m := NewSparkDraftContentMapperService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	m := NewSparkDraftContentValidatorService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
-	body, err := m.MapNativeContent(tidutils.TransactionAwareContext(context.Background(), testTID),
+	body, err := m.Validate(tidutils.TransactionAwareContext(context.Background(), testTID),
 		contentUUID,
 		ioutil.NopCloser(strings.NewReader(nativeBody)),
 		"application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
@@ -84,7 +85,7 @@ func TestSparkMapperBadContent(t *testing.T) {
 	assert.Nil(t, body)
 }
 
-func mockSparkMapperHTTPServer(t *testing.T, status int, expectedBody string, response string) *httptest.Server {
+func mockSparkValidatorHTTPServer(t *testing.T, status int, expectedBody string, response string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method, "HTTP method")
 		assert.Equal(t, "/validate", r.URL.Path)

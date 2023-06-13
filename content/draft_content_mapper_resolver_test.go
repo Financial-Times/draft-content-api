@@ -7,27 +7,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDraftContentMapperResolver_MapperForContentType(t *testing.T) {
-	ucv := NewSparkDraftContentMapperService("upp-article-endpoint", http.DefaultClient)
-	resolver := NewDraftContentMapperResolver(cctOnlyResolverConfig(ucv))
+func TestDraftContentValidatorResolver_ValidatorForContentType(t *testing.T) {
+	ucv := NewSparkDraftContentValidatorService("upp-article-endpoint", http.DefaultClient)
+	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(ucv))
 
-	uppContentValidator, err := resolver.MapperForContentType("application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
+	uppContentValidator, err := resolver.ValidatorForContentType("application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
 
 	assert.NoError(t, err, "UPP Validator relies on content-type and originId. Both are present")
-	assert.Equal(t, ucv, uppContentValidator, "Should return the same instance impl of DraftContentMapper")
+	assert.Equal(t, ucv, uppContentValidator, "Should return the same instance impl of DraftContentValidator")
 }
 
-func TestDraftContentMapperResolver_MissingSparkMapping(t *testing.T) {
-	resolver := NewDraftContentMapperResolver(map[string]DraftContentMapper{})
+func TestDraftContentValidatorResolver_MissingSparkValidation(t *testing.T) {
+	resolver := NewDraftContentValidatorResolver(map[string]DraftContentValidator{})
 
-	mapper, err := resolver.MapperForContentType("application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
+	validator, err := resolver.ValidatorForContentType("application/vnd.ft-upp-article+json; version=1.0; charset=utf-8")
 
 	assert.Error(t, err)
-	assert.Nil(t, mapper)
+	assert.Nil(t, validator)
 }
 
-func cctOnlyResolverConfig(ucv DraftContentMapper) (contentTypeToMapper map[string]DraftContentMapper) {
-	return map[string]DraftContentMapper{
+func cctOnlyResolverConfig(ucv DraftContentValidator) (contentTypeToValidator map[string]DraftContentValidator) {
+	return map[string]DraftContentValidator{
 		contentTypeArticle: ucv,
 	}
 }
