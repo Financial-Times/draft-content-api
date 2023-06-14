@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/Financial-Times/go-ft-http/fthttp"
+	"github.com/Financial-Times/go-logger/v2"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/husobee/vestigo"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -25,14 +25,15 @@ func TestReadTimeoutFromDraftContent(t *testing.T) {
 	defer contentRWTestServer.server.Close()
 	defer contentAPITestServer.server.Close()
 
-	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
+	client, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "timing-out-awesome-service"))
+	assert.NoError(t, err)
 
 	validatorService := NewSparkDraftContentValidatorService(contentAPITestServer.server.URL, client)
 	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validatorService))
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
 	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
-	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond)
+	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond, logger.NewUPPLogger("draft-content-api-test", "debug"))
 
 	r := vestigo.NewRouter()
 
@@ -67,7 +68,8 @@ func TestReadTimeoutFromUPPContent(t *testing.T) {
 	defer contentRWTestServer.server.Close()
 	defer contentAPITestServer.server.Close()
 
-	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
+	client, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "timing-out-awesome-service"))
+	assert.NoError(t, err)
 
 	validatorService := NewSparkDraftContentValidatorService(contentAPITestServer.server.URL, client)
 	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validatorService))
@@ -75,7 +77,7 @@ func TestReadTimeoutFromUPPContent(t *testing.T) {
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
 	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
-	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond)
+	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond, logger.NewUPPLogger("draft-content-api-test", "debug"))
 
 	r := vestigo.NewRouter()
 
@@ -117,7 +119,8 @@ func TestNativeWriteTimeout(t *testing.T) {
 	defer contentRWTestServer.server.Close()
 	defer contentAPITestServer.server.Close()
 
-	client := fthttp.NewClientWithDefaultTimeout("PAC", "timing-out-awesome-service")
+	client, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "timing-out-awesome-service"))
+	assert.NoError(t, err)
 
 	validatorService := NewSparkDraftContentValidatorService(contentAPITestServer.server.URL, client)
 	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validatorService))
@@ -125,7 +128,7 @@ func TestNativeWriteTimeout(t *testing.T) {
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
 	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
 
-	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond)
+	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond, logger.NewUPPLogger("draft-content-api-test", "debug"))
 
 	r := vestigo.NewRouter()
 
@@ -164,7 +167,6 @@ func newDraftContentRWTestServer(t *testing.T, inducedDelay time.Duration, respo
 			w.WriteHeader(responseStatus)
 			return
 		case http.MethodGet:
-			logrus.Info("Processing GET test request")
 			w.Header().Set("Content-Type", contentType)
 			w.Header().Set("X-Origin-System-Id", originID)
 			w.WriteHeader(responseStatus)

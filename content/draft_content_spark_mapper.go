@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"github.com/Financial-Times/draft-content-api/platform"
+	"github.com/Financial-Times/go-logger/v2"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
-	log "github.com/sirupsen/logrus"
 )
 
 type sparkDraftContentValidator struct {
@@ -26,10 +26,11 @@ func (validator *sparkDraftContentValidator) Validate(
 	contentUUID string,
 	nativeBody io.Reader,
 	contentType string,
+	log *logger.UPPLogger,
 ) (io.ReadCloser, error) {
 
 	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
-	mapLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
+	mapLog := log.WithField(tidutils.TransactionIDHeader, tid).WithField("uuid", contentUUID)
 
 	req, err := newHttpRequest(ctx, "POST", validator.Endpoint()+"/validate", nativeBody)
 

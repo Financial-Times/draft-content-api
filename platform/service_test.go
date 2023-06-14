@@ -13,34 +13,35 @@ import (
 func TestHappyGTG(t *testing.T) {
 	server := newGTGServerMock(t, http.StatusOK, "I am happy!")
 	defer server.Close()
-
-	svc := NewService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-	err := svc.GTG()
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
 	assert.NoError(t, err)
+	svc := NewService(server.URL, testClient)
+	assert.NoError(t, svc.GTG())
 }
 
 func TestUnhappyGTG(t *testing.T) {
 	server := newGTGServerMock(t, http.StatusServiceUnavailable, "I not am happy!")
 	defer server.Close()
-
-	s := NewService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-	err := s.GTG()
-	assert.EqualError(t, err, "gtg returned a non-200 HTTP status: 503 - I not am happy!")
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	svc := NewService(server.URL, testClient)
+	assert.EqualError(t, svc.GTG(), "gtg returned a non-200 HTTP status: 503 - I not am happy!")
 }
 
 func TestGTGInvalidURL(t *testing.T) {
-	svc := NewService(":#", fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-	err := svc.GTG()
-	assert.Error(t, err, "Missing protocol scheme in gtg request")
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	svc := NewService(":#", testClient)
+	assert.Error(t, svc.GTG(), "Missing protocol scheme in gtg request")
 }
 
 func TestGTGConnectionError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	server.Close()
-
-	svc := NewService(server.URL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-	err := svc.GTG()
-	assert.Error(t, err)
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	svc := NewService(server.URL, testClient)
+	assert.Error(t, svc.GTG())
 }
 
 func newGTGServerMock(t *testing.T, httpStatus int, body string) *httptest.Server {
@@ -55,12 +56,15 @@ func newGTGServerMock(t *testing.T, httpStatus int, body string) *httptest.Serve
 
 func TestEndpoint(t *testing.T) {
 	testURL := "http://an-endpoint.com"
-	svc := NewService(testURL, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	svc := NewService(testURL, testClient)
 	assert.Equal(t, testURL, svc.Endpoint())
 }
 
 func TestHTTPClient(t *testing.T) {
-	testClient := fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service")
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
 	svc := NewService("http://an-endpoint.com", testClient)
 	assert.Equal(t, testClient, svc.HTTPClient())
 }

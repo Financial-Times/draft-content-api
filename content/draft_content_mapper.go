@@ -3,10 +3,12 @@ package content
 import (
 	"context"
 	"io"
+
+	"github.com/Financial-Times/go-logger/v2"
 )
 
 type DraftContentValidator interface {
-	Validate(ctx context.Context, contentUUID string, nativeBody io.Reader, contentType string) (io.ReadCloser, error)
+	Validate(ctx context.Context, contentUUID string, nativeBody io.Reader, contentType string, log *logger.UPPLogger) (io.ReadCloser, error)
 	GTG() error
 	Endpoint() string
 }

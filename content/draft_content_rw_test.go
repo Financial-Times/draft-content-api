@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/Financial-Times/go-ft-http/fthttp"
+	"github.com/Financial-Times/go-logger/v2"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -19,10 +20,11 @@ import (
 )
 
 type mockValidator struct {
-	mock.Mock
-	t                    *testing.T
 	expectedDraftRef     string
 	expectedLastModified string
+	mock                 mock.Mock
+	t                    *testing.T
+	log                  *logger.UPPLogger
 }
 
 const (
@@ -37,30 +39,38 @@ func TestReadContent(t *testing.T) {
 	expectedContent := []byte("{\"foo\":\"baz\"}")
 	testSystemID := "foo-bar-baz"
 	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
+	testLogger := logger.NewUPPLogger(testSystemID, "debug")
 
 	rwServer := mockReadFromGenericRW(t, http.StatusOK, contentUUID, testSystemID, nativeContent, testLastModified, testDraftRef)
 	defer rwServer.Close()
 
 	validator := mockContentValidator(t, testLastModified, testDraftRef)
-	validator.On("Validate", mock.Anything, contentUUID, mock.Anything, contentTypeArticle).Return(io.NopCloser(bytes.NewReader(expectedContent)), nil)
+	validator.mock.On("Validate", mock.Anything, contentUUID, mock.Anything, contentTypeArticle, mock.Anything).Return(io.NopCloser(bytes.NewReader(expectedContent)), nil)
 
-	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validator))
+	resolver := NewDraftContentValidatorResolver(
+		cctOnlyResolverConfig(
+			validator,
+		),
+	)
 
-	rw := NewDraftContentRWService(rwServer.URL, resolver, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	rw := NewDraftContentRWService(rwServer.URL, resolver, testClient)
 
-	body, err := rw.Read(ctx, contentUUID)
+	body, err := rw.Read(ctx, contentUUID, testLogger)
 	assert.NoError(t, err)
 	defer body.Close()
 	actual, err := io.ReadAll(body)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedContent, actual, "content")
-	validator.AssertExpectations(t)
+	validator.mock.AssertExpectations(t)
 }
 
 func TestReadContentNotFound(t *testing.T) {
 	contentUUID := uuid.New().String()
 	testSystemID := "foo-bar-baz"
 	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
+	testLogger := logger.NewUPPLogger(testSystemID, "debug")
 
 	rwServer := mockReadFromGenericRW(t, http.StatusNotFound, contentUUID, testSystemID, []byte("{\"message\":\"not found\"}"), "", "")
 	defer rwServer.Close()
@@ -68,18 +78,22 @@ func TestReadContentNotFound(t *testing.T) {
 	validator := mockContentValidator(t, "", "")
 
 	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validator))
-	rw := NewDraftContentRWService(rwServer.URL, resolver, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
 
-	body, err := rw.Read(ctx, contentUUID)
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	rw := NewDraftContentRWService(rwServer.URL, resolver, testClient)
+
+	body, err := rw.Read(ctx, contentUUID, testLogger)
 	assert.Error(t, err, ErrDraftNotFound.Error())
 	assert.Nil(t, body, "mapped content")
-	validator.AssertExpectations(t)
+	validator.mock.AssertExpectations(t)
 }
 
 func TestReadContentError(t *testing.T) {
 	contentUUID := uuid.New().String()
 	testSystemID := "foo-bar-baz"
 	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
+	testLogger := logger.NewUPPLogger(testSystemID, "debug")
 
 	rwServer := mockReadFromGenericRW(t, http.StatusServiceUnavailable, contentUUID, testSystemID, []byte("{\"message\":\"service unavailable\"}"), "", "")
 	defer rwServer.Close()
@@ -87,12 +101,14 @@ func TestReadContentError(t *testing.T) {
 	validator := mockContentValidator(t, "", "")
 	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validator))
 
-	rw := NewDraftContentRWService(rwServer.URL, resolver, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	rw := NewDraftContentRWService(rwServer.URL, resolver, testClient)
 
-	body, err := rw.Read(ctx, contentUUID)
+	body, err := rw.Read(ctx, contentUUID, testLogger)
 	assert.Error(t, err, "service unavailable", "r/w error")
 	assert.Nil(t, body, "mapped content")
-	validator.AssertExpectations(t)
+	validator.mock.AssertExpectations(t)
 }
 
 func TestReadContentValidatorError(t *testing.T) {
@@ -100,20 +116,23 @@ func TestReadContentValidatorError(t *testing.T) {
 	nativeContent := []byte("{\"foo\":\"bar\"}")
 	testSystemID := "foo-bar-baz"
 	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
+	testLogger := logger.NewUPPLogger(testSystemID, "debug")
 
 	rwServer := mockReadFromGenericRW(t, http.StatusOK, contentUUID, testSystemID, nativeContent, testLastModified, testDraftRef)
 	defer rwServer.Close()
 
 	validator := mockContentValidator(t, testLastModified, testDraftRef)
-	validator.On("Validate", mock.Anything, mock.AnythingOfType("string"), mock.Anything, contentTypeArticle).Return(nil, errors.New("test validator error"))
+	validator.mock.On("Validate", mock.Anything, mock.AnythingOfType("string"), mock.Anything, contentTypeArticle).Return(nil, errors.New("test validator error"))
 
 	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validator))
-	rw := NewDraftContentRWService(rwServer.URL, resolver, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	rw := NewDraftContentRWService(rwServer.URL, resolver, testClient)
 
-	body, err := rw.Read(ctx, contentUUID)
+	body, err := rw.Read(ctx, contentUUID, testLogger)
 	assert.Error(t, err, "test validator error")
 	assert.Nil(t, body, "mapped content")
-	validator.AssertExpectations(t)
+	validator.mock.AssertExpectations(t)
 }
 
 func TestReadContentValidatorUnprocessableEntityError(t *testing.T) {
@@ -121,26 +140,30 @@ func TestReadContentValidatorUnprocessableEntityError(t *testing.T) {
 	nativeContent := []byte("{\"foo\":\"bar\"}")
 	testSystemID := "foo-bar-baz"
 	ctx := tidutils.TransactionAwareContext(context.TODO(), testTID)
+	testLogger := logger.NewUPPLogger(testSystemID, "debug")
 
 	rwServer := mockReadFromGenericRW(t, http.StatusOK, contentUUID, testSystemID, nativeContent, testLastModified, testDraftRef)
 	defer rwServer.Close()
 
 	validator := mockContentValidator(t, testLastModified, testDraftRef)
-	validator.On("Validate", mock.Anything, mock.AnythingOfType("string"), mock.Anything, contentTypeArticle).Return(nil, ValidatorError{http.StatusUnprocessableEntity, "test validator error"})
+	validator.mock.On("Validate", mock.Anything, mock.AnythingOfType("string"), mock.Anything, contentTypeArticle).Return(nil, ValidatorError{http.StatusUnprocessableEntity, "test validator error"})
 	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validator))
 
-	rw := NewDraftContentRWService(rwServer.URL, resolver, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	rw := NewDraftContentRWService(rwServer.URL, resolver, testClient)
 
-	body, err := rw.Read(ctx, contentUUID)
+	body, err := rw.Read(ctx, contentUUID, testLogger)
 	assert.EqualError(t, err, ErrDraftNotValid.Error())
 	assert.Nil(t, body, "mapped content")
-	validator.AssertExpectations(t)
+	validator.mock.AssertExpectations(t)
 }
 
 func TestWriteContent(t *testing.T) {
 	contentUUID := uuid.New().String()
 	content := "{\"foo\":\"bar\"}"
 	testSystemID := "foo-bar-baz"
+	testLogger := logger.NewUPPLogger(testSystemID, "debug")
 	headers := map[string]string{
 		tidutils.TransactionIDHeader: testTID,
 		originSystemIdHeader:         testSystemID,
@@ -150,16 +173,17 @@ func TestWriteContent(t *testing.T) {
 	server := mockWriteToGenericRW(t, http.StatusOK, contentUUID, testSystemID, content, testContentType)
 	defer server.Close()
 
-	rw := NewDraftContentRWService(server.URL, nil, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-
-	err := rw.Write(context.TODO(), contentUUID, &content, headers)
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
 	assert.NoError(t, err)
+	rw := NewDraftContentRWService(server.URL, nil, testClient)
+	assert.NoError(t, rw.Write(context.TODO(), contentUUID, &content, headers, testLogger))
 }
 
 func TestWriteContentWriterReturnsStatusCreated(t *testing.T) {
 	contentUUID := uuid.New().String()
 	content := "{\"foo\":\"bar\"}"
 	testSystemID := "foo-bar-baz"
+	testLogger := logger.NewUPPLogger(testSystemID, "debug")
 	headers := map[string]string{
 		tidutils.TransactionIDHeader: testTID,
 		originSystemIdHeader:         testSystemID,
@@ -169,16 +193,17 @@ func TestWriteContentWriterReturnsStatusCreated(t *testing.T) {
 	server := mockWriteToGenericRW(t, http.StatusCreated, contentUUID, testSystemID, content, testContentType)
 	defer server.Close()
 
-	rw := NewDraftContentRWService(server.URL, nil, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-
-	err := rw.Write(context.TODO(), contentUUID, &content, headers)
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
 	assert.NoError(t, err)
+	rw := NewDraftContentRWService(server.URL, nil, testClient)
+	assert.NoError(t, rw.Write(context.TODO(), contentUUID, &content, headers, testLogger))
 }
 
 func TestWriteContentWriterReturnsError(t *testing.T) {
 	contentUUID := uuid.New().String()
 	content := "{\"foo\":\"bar\"}"
 	testSystemID := "foo-bar-baz"
+	testLogger := logger.NewUPPLogger(testSystemID, "debug")
 	headers := map[string]string{
 		tidutils.TransactionIDHeader: testTID,
 		originSystemIdHeader:         testSystemID,
@@ -188,9 +213,10 @@ func TestWriteContentWriterReturnsError(t *testing.T) {
 	server := mockWriteToGenericRW(t, http.StatusServiceUnavailable, contentUUID, testSystemID, content, testContentType)
 	defer server.Close()
 
-	rw := NewDraftContentRWService(server.URL, nil, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-
-	err := rw.Write(context.TODO(), contentUUID, &content, headers)
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	rw := NewDraftContentRWService(server.URL, nil, testClient)
+	err = rw.Write(context.TODO(), contentUUID, &content, headers, testLogger)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "content RW returned an unexpected HTTP status code in write operation", "error message")
 }
@@ -228,11 +254,16 @@ func mockWriteToGenericRW(t *testing.T, status int, contentUUID, systemID, expec
 }
 
 func mockContentValidator(t *testing.T, lastModified string, draftRef string) *mockValidator {
-	return &mockValidator{mock.Mock{}, t, draftRef, lastModified}
+	return &mockValidator{
+		expectedDraftRef:     draftRef,
+		expectedLastModified: lastModified,
+		mock:                 mock.Mock{},
+		t:                    t,
+	}
 }
 
-func (m *mockValidator) Validate(ctx context.Context, contentUUID string, nativeBody io.Reader, contentType string) (io.ReadCloser, error) {
-	args := m.Called(ctx, contentUUID, nativeBody, contentType)
+func (m *mockValidator) Validate(ctx context.Context, contentUUID string, nativeBody io.Reader, contentType string, _ *logger.UPPLogger) (io.ReadCloser, error) {
+	args := m.mock.Called(ctx, contentUUID, nativeBody, contentType)
 	actualBody := make(map[string]interface{})
 	err := json.NewDecoder(nativeBody).Decode(&actualBody)
 	assert.NoError(m.t, err)

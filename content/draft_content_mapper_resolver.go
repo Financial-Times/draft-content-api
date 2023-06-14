@@ -2,8 +2,6 @@ package content
 
 import (
 	"fmt"
-
-	"github.com/sirupsen/logrus"
 )
 
 // DraftContentValidatorResolver manages the validators available for a given originId/content-type pair.
@@ -28,8 +26,11 @@ func (resolver *draftContentValidatorResolver) ValidatorForContentType(contentTy
 	validator, found := resolver.contentTypeToValidator[contentType]
 
 	if !found {
-		logrus.Infof("contentTypeMap: %v", resolver.contentTypeToValidator)
-		return nil, fmt.Errorf("no validator configured for contentType: %s", contentType)
+		return nil, fmt.Errorf(
+			"no validator configured for contentType: %s\ncontentTypeMap: %v",
+			contentType,
+			resolver.contentTypeToValidator,
+		)
 	}
 
 	return validator, nil

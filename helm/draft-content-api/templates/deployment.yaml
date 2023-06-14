@@ -53,6 +53,8 @@ spec:
             secretKeyRef:
               name: doppler-global-secrets
               key: DRAFT_CONTENT_API_UPP_API_KEY
+        - name: LOG_LEVEL
+          value: "{{ .Values.env.LOG_LEVEL }}"
         ports:
         - containerPort: 8080
         livenessProbe:

@@ -3,7 +3,7 @@ package platform
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	status "github.com/Financial-Times/service-status-go/httphandlers"
@@ -32,7 +32,7 @@ func (svc *Service) GTG() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		errMsgBody, err := ioutil.ReadAll(resp.Body)
+		errMsgBody, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return errors.New("gtg returned a non-200 HTTP status")
 		}

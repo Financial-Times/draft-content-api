@@ -10,8 +10,8 @@ import (
 	"net/http"
 
 	"github.com/Financial-Times/draft-content-api/platform"
+	"github.com/Financial-Times/go-logger/v2"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -25,8 +25,8 @@ var (
 )
 
 type DraftContentRW interface {
-	Read(ctx context.Context, contentUUID string) (io.ReadCloser, error)
-	Write(ctx context.Context, contentUUID string, content *string, headers map[string]string) error
+	Read(ctx context.Context, contentUUID string, log *logger.UPPLogger) (io.ReadCloser, error)
+	Write(ctx context.Context, contentUUID string, content *string, headers map[string]string, log *logger.UPPLogger) error
 	GTG() error
 	Endpoint() string
 }
@@ -41,11 +41,11 @@ func NewDraftContentRWService(endpoint string, resolver DraftContentValidatorRes
 	return &draftContentRW{s, resolver}
 }
 
-func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.ReadCloser, error) {
+func (rw *draftContentRW) Read(ctx context.Context, contentUUID string, log *logger.UPPLogger) (io.ReadCloser, error) {
 	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
-	readLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
+	readLog := log.WithField(tidutils.TransactionIDHeader, tid).WithField("uuid", contentUUID)
 
-	resp, err := rw.readNativeContent(ctx, contentUUID)
+	resp, err := rw.readNativeContent(ctx, contentUUID, log)
 	if err != nil {
 		readLog.WithError(err).Error("Error making the HTTP request to content RW")
 		return nil, err
@@ -55,7 +55,7 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 	switch resp.StatusCode {
 	case http.StatusOK:
 		var nativeContent io.Reader
-		nativeContent, err = rw.constructNativeDocumentForValidator(ctx, resp.Body, resp.Header.Get("Last-Modified-RFC3339"), resp.Header.Get("Write-Request-Id"))
+		nativeContent, err = rw.constructNativeDocumentForValidator(ctx, resp.Body, resp.Header.Get("Last-Modified-RFC3339"), resp.Header.Get("Write-Request-Id"), log)
 
 		if err == nil {
 			contentType := resp.Header.Get(contentTypeHeader)
@@ -66,7 +66,7 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 				return nil, resolverErr
 			}
 
-			content, err = validator.Validate(ctx, contentUUID, nativeContent, contentType)
+			content, err = validator.Validate(ctx, contentUUID, nativeContent, contentType, log)
 
 			if err != nil {
 				readLog.WithError(err).Warn("Validator error")
@@ -95,9 +95,9 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 	return content, err
 }
 
-func (rw *draftContentRW) readNativeContent(ctx context.Context, contentUUID string) (*http.Response, error) {
+func (rw *draftContentRW) readNativeContent(ctx context.Context, contentUUID string, log *logger.UPPLogger) (*http.Response, error) {
 	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
-	readLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
+	readLog := log.WithField(tidutils.TransactionIDHeader, tid).WithField("uuid", contentUUID)
 
 	req, err := newHttpRequest(ctx, "GET", fmt.Sprintf(rwURLPattern, rw.Endpoint(), contentUUID), nil)
 	if err != nil {
@@ -108,9 +108,9 @@ func (rw *draftContentRW) readNativeContent(ctx context.Context, contentUUID str
 	return rw.HTTPClient().Do(req)
 }
 
-func (rw *draftContentRW) constructNativeDocumentForValidator(ctx context.Context, rawNativeBody io.Reader, lastModified string, writeRef string) (io.Reader, error) {
+func (rw *draftContentRW) constructNativeDocumentForValidator(ctx context.Context, rawNativeBody io.Reader, lastModified string, writeRef string, log *logger.UPPLogger) (io.Reader, error) {
 	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
-	readLog := log.WithField(tidutils.TransactionIDKey, tid)
+	readLog := log.WithField(tidutils.TransactionIDHeader, tid)
 
 	rawNativeDoc := make(map[string]interface{})
 	err := json.NewDecoder(rawNativeBody).Decode(&rawNativeDoc)
@@ -131,10 +131,10 @@ func (rw *draftContentRW) constructNativeDocumentForValidator(ctx context.Contex
 	return bytes.NewReader(nativeDoc), nil
 }
 
-func (rw *draftContentRW) Write(ctx context.Context, contentUUID string, content *string, headers map[string]string) error {
+func (rw *draftContentRW) Write(ctx context.Context, contentUUID string, content *string, headers map[string]string, log *logger.UPPLogger) error {
 	tid := headers[tidutils.TransactionIDHeader]
 
-	writeLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
+	writeLog := log.WithField(tidutils.TransactionIDHeader, tid).WithField("uuid", contentUUID)
 
 	req, err := newHttpRequest(ctx, "PUT", fmt.Sprintf(rwURLPattern, rw.Endpoint(), contentUUID), bytes.NewBuffer([]byte(*content)))
 	if err != nil {

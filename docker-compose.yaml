@@ -10,7 +10,7 @@ services:
         API_YML: "./api.yml"
         VALIDATOR_YML: "./config.yml"
     ports:
-        - 8080:8080
+        - "8080:8080"
     depends_on:
         - upp-live-blog-post-validator
         - upp-live-blog-package-validator
@@ -26,7 +26,7 @@ services:
       APP_TIMEOUT: "10s"
       API_YML: "/config.yml"
     ports:
-      - 8000:8080
+      - "8000:8080"
 
   upp-live-blog-post-validator:
     image: coco/upp-live-blog-validator:v1.1.0-dev-bv-flags-rc3
@@ -41,7 +41,7 @@ services:
       BODY_VALIDATION_ENABLED: "false"
       QUEUE_ENABLED: "false"
     ports:
-      - 8001:8080
+      - "8001:8080"
 
   upp-live-blog-package-validator:
     image: coco/upp-live-blog-validator:v1.1.0-dev-bv-flags-rc3
@@ -56,7 +56,7 @@ services:
       BODY_VALIDATION_ENABLED: "false"
       QUEUE_ENABLED: "false"
     ports:
-      - 8002:8080
+      - "8002:8080"
 
   upp-article-validator:
     image: coco/upp-article-validator:v1.1.0
@@ -82,7 +82,7 @@ services:
       REMOVABLE_PROPERTIES: "alternativeTitles.promotionalTitleVariant, thisistest"
       BASE_SCHEMAS_URL: "http://localhost:8080"
     ports:
-      - 8003:8080
+      - "8003:8080"
     command: /upp-article-validator
     depends_on:
       - body-validation
@@ -110,7 +110,7 @@ services:
       APP_PORT: 8080
       REMOVABLE_PROPERTIES: ""
     ports:
-      - 8004:8080
+      - "8004:8080"
     command: /upp-content-placeholder-validator
     depends_on:
       - body-validation
@@ -121,5 +121,5 @@ services:
       JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseG1GC -XX:+UseStringDeduplication -server"
       BASE_SCHEMAS_URL: "http://localhost:8080/schemas"
     ports:
-      - 9080:8080
-      - 9081:8081      
+      - "9080:8080"
+      - "9081:8081"
