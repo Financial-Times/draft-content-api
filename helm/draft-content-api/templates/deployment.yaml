@@ -51,8 +51,8 @@ spec:
         - name: CAPI_APIKEY
           valueFrom:
             secretKeyRef:
-              name: draft-content-api
-              key: upp-api-key
+              name: doppler-global-secrets
+              key: DRAFT_CONTENT_API_UPP_API_KEY
         ports:
         - containerPort: 8080
         livenessProbe:
