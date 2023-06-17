@@ -24,7 +24,6 @@ type mockValidator struct {
 	expectedLastModified string
 	mock                 mock.Mock
 	t                    *testing.T
-	log                  *logger.UPPLogger
 }
 
 const (

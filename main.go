@@ -19,8 +19,6 @@ import (
 	"github.com/rcrowley/go-metrics"
 )
 
-//TODO: Replace github.com/husobee/vestigo with mux
-
 const (
 	defaultAppName        = "draft-content-api"
 	defaultAppDescription = "PAC Draft Content"
@@ -195,9 +193,7 @@ func buildContentTypeMapping(validatorConfig *config.Config, httpClient *http.Cl
 }
 
 func serveEndpoints(port string, apiYml *string, contentHandler *content.Handler, healthService *health.Service, log *logger.UPPLogger) {
-
 	r := vestigo.NewRouter()
-
 	r.Get("/drafts/content/:uuid", contentHandler.ReadContent)
 	r.Put("/drafts/nativecontent/:uuid", contentHandler.WriteNativeContent)
 

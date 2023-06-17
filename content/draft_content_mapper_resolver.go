@@ -21,7 +21,6 @@ type draftContentValidatorResolver struct {
 
 // ValidatorForContentType implementation checks the content-type validation for a validator resolution.
 func (resolver *draftContentValidatorResolver) ValidatorForContentType(contentType string) (DraftContentValidator, error) {
-
 	contentType = stripMediaTypeParameters(contentType)
 	validator, found := resolver.contentTypeToValidator[contentType]
 

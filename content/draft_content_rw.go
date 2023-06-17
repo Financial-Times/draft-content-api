@@ -70,16 +70,15 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string, log *log
 
 			if err != nil {
 				readLog.WithError(err).Warn("Validator error")
-				switch err.(type) {
-				case ValidatorError:
-					switch err.(ValidatorError).StatusCode() {
+				var validatorError ValidatorError
+				if errors.As(err, &validatorError) {
+					switch validatorError.StatusCode() {
 					case http.StatusNotFound:
 						fallthrough
 					case http.StatusUnsupportedMediaType:
 						err = ErrDraftContentTypeNotSupported
 					case http.StatusUnprocessableEntity:
 						err = ErrDraftNotValid
-
 					}
 				}
 			}
