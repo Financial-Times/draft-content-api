@@ -6,16 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/Financial-Times/go-logger/v2"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/google/uuid"
 	"github.com/husobee/vestigo"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -31,14 +30,21 @@ var (
 	AllowedContentTypes         = map[string]struct{}{}
 )
 
-type Handler struct {
-	uppContentAPI ContentAPI
-	contentRW     DraftContentRW
-	timeout       time.Duration
+type contentProviderAPI interface {
+	Get(ctx context.Context, contentUUID string, log *logger.UPPLogger) (*http.Response, error)
+	GTG() error
+	Endpoint() string
 }
 
-func NewHandler(uppAPI ContentAPI, draftContentRW DraftContentRW, timeout time.Duration) *Handler {
-	return &Handler{uppAPI, draftContentRW, timeout}
+type Handler struct {
+	uppContentAPI contentProviderAPI
+	contentRW     DraftContentRW
+	timeout       time.Duration
+	log           *logger.UPPLogger
+}
+
+func NewHandler(uppAPI contentProviderAPI, draftContentRW DraftContentRW, timeout time.Duration, log *logger.UPPLogger) *Handler {
+	return &Handler{uppAPI, draftContentRW, timeout, log}
 }
 
 func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
@@ -48,14 +54,14 @@ func (h *Handler) ReadContent(w http.ResponseWriter, r *http.Request) {
 	ctx, cancelCtx := context.WithTimeout(newContextFromRequest(r), h.timeout)
 	defer cancelCtx()
 
-	content, err := h.contentRW.Read(ctx, contentId)
+	content, err := h.contentRW.Read(ctx, contentId, h.log)
 
 	if isTimeoutError(err) {
 		writeMessage(w, errorMessageForRead(http.StatusGatewayTimeout), http.StatusGatewayTimeout)
 		return
 	}
 
-	if err == ErrDraftNotMappable {
+	if err == ErrDraftNotValid {
 		writeMessage(w, errorMessageForRead(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 		return
 	}
@@ -83,7 +89,7 @@ func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
 
 	tID := tidutils.GetTransactionIDFromRequest(r)
 
-	writeLog := log.WithField(tidutils.TransactionIDKey, tID).WithField("uuid", contentId)
+	writeLog := h.log.WithField(tidutils.TransactionIDHeader, tID).WithField("uuid", contentId)
 
 	if err := validateUUID(contentId); err != nil {
 		writeLog.WithError(err).Error("Invalid content UUID")
@@ -105,7 +111,7 @@ func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	raw, err := ioutil.ReadAll(r.Body)
+	raw, err := io.ReadAll(r.Body)
 	if err != nil {
 		writeLog.WithError(err).Error("Unable to read draft content body")
 		writeMessage(w, fmt.Sprintf("Unable to read draft content body: %v", err.Error()), http.StatusBadRequest)
@@ -123,7 +129,7 @@ func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeLog.Info("write native content to content RW ...")
-	err = h.contentRW.Write(ctx, contentId, &draftContent, draftHeaders)
+	err = h.contentRW.Write(ctx, contentId, &draftContent, draftHeaders, h.log)
 	if err != nil {
 		writeLog.WithError(err).Error("Error in writing draft content")
 
@@ -142,9 +148,9 @@ func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) readContentFromUPP(ctx context.Context, w http.ResponseWriter, contentId string) {
 
-	readContentUPPLog := log.WithField(tidutils.TransactionIDKey, ctx.Value(tidutils.TransactionIDKey)).WithField("uuid", contentId)
+	readContentUPPLog := h.log.WithField(tidutils.TransactionIDHeader, ctx.Value(tidutils.TransactionIDHeader)).WithField("uuid", contentId)
 	readContentUPPLog.Warn("Draft not found in PAC, trying UPP")
-	uppResp, err := h.uppContentAPI.Get(ctx, contentId)
+	uppResp, err := h.uppContentAPI.Get(ctx, contentId, h.log)
 
 	if err != nil {
 		readContentUPPLog.WithError(err).Error("Error in calling Content API")
@@ -170,7 +176,7 @@ func (h *Handler) readContentFromUPP(ctx context.Context, w http.ResponseWriter,
 		return
 	}
 
-	bytes, err := ioutil.ReadAll(uppResp.Body)
+	bytes, err := io.ReadAll(uppResp.Body)
 
 	if err != nil {
 		readContentUPPLog.WithError(err).Error("Failed reading UPP response")

@@ -10,8 +10,8 @@ import (
 	"net/http"
 
 	"github.com/Financial-Times/draft-content-api/platform"
+	"github.com/Financial-Times/go-logger/v2"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -20,71 +20,70 @@ const (
 
 var (
 	ErrDraftNotFound                = errors.New("draft content not found in PAC")
-	ErrDraftNotMappable             = errors.New("draft content is invalid for mapping")
-	ErrDraftContentTypeNotSupported = errors.New("draft content-type is invalid for mapping")
+	ErrDraftNotValid                = errors.New("draft content is invalid")
+	ErrDraftContentTypeNotSupported = errors.New("draft content-type is invalid")
 )
 
 type DraftContentRW interface {
-	Read(ctx context.Context, contentUUID string) (io.ReadCloser, error)
-	Write(ctx context.Context, contentUUID string, content *string, headers map[string]string) error
+	Read(ctx context.Context, contentUUID string, log *logger.UPPLogger) (io.ReadCloser, error)
+	Write(ctx context.Context, contentUUID string, content *string, headers map[string]string, log *logger.UPPLogger) error
 	GTG() error
 	Endpoint() string
 }
 
 type draftContentRW struct {
 	*platform.Service
-	resolver DraftContentMapperResolver
+	resolver DraftContentValidatorResolver
 }
 
-func NewDraftContentRWService(endpoint string, resolver DraftContentMapperResolver, httpClient *http.Client) DraftContentRW {
+func NewDraftContentRWService(endpoint string, resolver DraftContentValidatorResolver, httpClient *http.Client) DraftContentRW {
 	s := platform.NewService(endpoint, httpClient)
 	return &draftContentRW{s, resolver}
 }
 
-func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.ReadCloser, error) {
+func (rw *draftContentRW) Read(ctx context.Context, contentUUID string, log *logger.UPPLogger) (io.ReadCloser, error) {
 	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
-	readLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
+	readLog := log.WithField(tidutils.TransactionIDHeader, tid).WithField("uuid", contentUUID)
 
-	resp, err := rw.readNativeContent(ctx, contentUUID)
+	resp, err := rw.readNativeContent(ctx, contentUUID, log)
 	if err != nil {
 		readLog.WithError(err).Error("Error making the HTTP request to content RW")
 		return nil, err
 	}
 	defer resp.Body.Close()
-	var mappedContent io.ReadCloser
+	var content io.ReadCloser
 	switch resp.StatusCode {
 	case http.StatusOK:
 		var nativeContent io.Reader
-		nativeContent, err = rw.constructNativeDocumentForMapper(ctx, resp.Body, resp.Header.Get("Last-Modified-RFC3339"), resp.Header.Get("Write-Request-Id"))
+		nativeContent, err = rw.constructNativeDocumentForValidator(ctx, resp.Body, resp.Header.Get("Last-Modified-RFC3339"), resp.Header.Get("Write-Request-Id"), log)
 
 		if err == nil {
 			contentType := resp.Header.Get(contentTypeHeader)
-			mapper, resolverErr := rw.resolver.MapperForContentType(contentType)
+			validator, resolverErr := rw.resolver.ValidatorForContentType(contentType)
 
 			if resolverErr != nil {
-				readLog.WithError(resolverErr).Error("Unable to map content")
+				readLog.WithError(resolverErr).Error("Unable to validate content")
 				return nil, resolverErr
 			}
 
-			mappedContent, err = mapper.MapNativeContent(ctx, contentUUID, nativeContent, contentType)
+			content, err = validator.Validate(ctx, contentUUID, nativeContent, contentType, log)
 
 			if err != nil {
-				readLog.WithError(err).Warn("Mapper error")
-				switch err.(type) {
-				case MapperError:
-					switch err.(MapperError).MapperStatusCode() {
+				readLog.WithError(err).Warn("Validator error")
+				var validatorError ValidatorError
+				if errors.As(err, &validatorError) {
+					switch validatorError.StatusCode() {
 					case http.StatusNotFound:
 						fallthrough
 					case http.StatusUnsupportedMediaType:
 						err = ErrDraftContentTypeNotSupported
 					case http.StatusUnprocessableEntity:
-						err = ErrDraftNotMappable
-
+						err = ErrDraftNotValid
 					}
 				}
 			}
 		} else {
-			readLog.WithError(err).Warn("Error constructing mapper input")
+			readLog.WithError(err).Warn("Error constructing validator input")
 		}
 	case http.StatusNotFound:
 		err = ErrDraftNotFound
@@ -92,12 +91,12 @@ func (rw *draftContentRW) Read(ctx context.Context, contentUUID string) (io.Read
 		return nil, fmt.Errorf("content RW returned an unexpected HTTP status code in read operation: %v", resp.StatusCode)
 	}
 
-	return mappedContent, err
+	return content, err
 }
 
-func (rw *draftContentRW) readNativeContent(ctx context.Context, contentUUID string) (*http.Response, error) {
+func (rw *draftContentRW) readNativeContent(ctx context.Context, contentUUID string, log *logger.UPPLogger) (*http.Response, error) {
 	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
-	readLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
+	readLog := log.WithField(tidutils.TransactionIDHeader, tid).WithField("uuid", contentUUID)
 
 	req, err := newHttpRequest(ctx, "GET", fmt.Sprintf(rwURLPattern, rw.Endpoint(), contentUUID), nil)
 	if err != nil {
@@ -108,9 +107,9 @@ func (rw *draftContentRW) readNativeContent(ctx context.Context, contentUUID str
 	return rw.HTTPClient().Do(req)
 }
 
-func (rw *draftContentRW) constructNativeDocumentForMapper(ctx context.Context, rawNativeBody io.Reader, lastModified string, writeRef string) (io.Reader, error) {
+func (rw *draftContentRW) constructNativeDocumentForValidator(ctx context.Context, rawNativeBody io.Reader, lastModified string, writeRef string, log *logger.UPPLogger) (io.Reader, error) {
 	tid, _ := tidutils.GetTransactionIDFromContext(ctx)
-	readLog := log.WithField(tidutils.TransactionIDKey, tid)
+	readLog := log.WithField(tidutils.TransactionIDHeader, tid)
 
 	rawNativeDoc := make(map[string]interface{})
 	err := json.NewDecoder(rawNativeBody).Decode(&rawNativeDoc)
@@ -131,10 +130,10 @@ func (rw *draftContentRW) constructNativeDocumentForMapper(ctx context.Context, 
 	return bytes.NewReader(nativeDoc), nil
 }
 
-func (rw *draftContentRW) Write(ctx context.Context, contentUUID string, content *string, headers map[string]string) error {
+func (rw *draftContentRW) Write(ctx context.Context, contentUUID string, content *string, headers map[string]string, log *logger.UPPLogger) error {
 	tid := headers[tidutils.TransactionIDHeader]
 
-	writeLog := log.WithField(tidutils.TransactionIDKey, tid).WithField("uuid", contentUUID)
+	writeLog := log.WithField(tidutils.TransactionIDHeader, tid).WithField("uuid", contentUUID)
 
 	req, err := newHttpRequest(ctx, "PUT", fmt.Sprintf(rwURLPattern, rw.Endpoint(), contentUUID), bytes.NewBuffer([]byte(*content)))
 	if err != nil {

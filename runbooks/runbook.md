@@ -112,7 +112,7 @@ Manual
 ## Key Management Details
 
 To access the service clients need to provide basic auth credentials.
-To rotate credentials you need to login to a particular cluster and update varnish-auth secrets.
+To rotate credentials you need to log in to a particular cluster and update varnish-auth secrets.
 
 ## Monitoring
 

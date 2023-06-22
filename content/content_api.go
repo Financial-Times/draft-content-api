@@ -4,40 +4,35 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	tidutils "github.com/Financial-Times/transactionid-utils-go"
-	log "github.com/sirupsen/logrus"
-	"io/ioutil"
+	"io"
 	"net/http"
+
+	"github.com/Financial-Times/go-logger/v2"
+	tidutils "github.com/Financial-Times/transactionid-utils-go"
 )
 
 const apiKeyHeader = "X-Api-Key"
 
 const syntheticContentUUID = "4f2f97ea-b8ec-11e4-b8e6-00144feab7de"
 
-type ContentAPI interface {
-	Get(ctx context.Context, contentUUID string) (*http.Response, error)
-	GTG() error
-	Endpoint() string
-}
-
-type contentAPI struct {
+type API struct {
 	endpoint   string
 	apiKey     string
 	httpClient *http.Client
 }
 
-func NewContentAPI(endpoint string, apiKey string, httpClient *http.Client) ContentAPI {
-	return &contentAPI{endpoint, apiKey, httpClient}
+func NewContentAPI(endpoint string, apiKey string, httpClient *http.Client) *API {
+	return &API{endpoint, apiKey, httpClient}
 }
 
-func (api *contentAPI) Get(ctx context.Context, contentUUID string) (*http.Response, error) {
+func (api *API) Get(ctx context.Context, contentUUID string, log *logger.UPPLogger) (*http.Response, error) {
 	apiReqURI := api.endpoint + "/" + contentUUID
 	getContentLog := log.WithField("url", apiReqURI).WithField("uuid", contentUUID)
 	tID, err := tidutils.GetTransactionIDFromContext(ctx)
 	if err != nil {
 		getContentLog.WithError(err).Warn("Transaction ID not found for request to content API")
 	}
-	getContentLog = getContentLog.WithField(tidutils.TransactionIDKey, tID)
+	getContentLog = getContentLog.WithField(tidutils.TransactionIDHeader, tID)
 
 	apiReq, err := http.NewRequest("GET", apiReqURI, nil)
 
@@ -55,7 +50,7 @@ func (api *contentAPI) Get(ctx context.Context, contentUUID string) (*http.Respo
 	return api.httpClient.Do(apiReq.WithContext(ctx))
 }
 
-func (api *contentAPI) GTG() error {
+func (api *API) GTG() error {
 	apiReqURI := api.endpoint + "/" + syntheticContentUUID
 	apiReq, err := http.NewRequest("GET", apiReqURI, nil)
 	if err != nil {
@@ -71,7 +66,7 @@ func (api *contentAPI) GTG() error {
 	defer apiResp.Body.Close()
 
 	if apiResp.StatusCode != http.StatusOK {
-		errMsgBody, err := ioutil.ReadAll(apiResp.Body)
+		errMsgBody, err := io.ReadAll(apiResp.Body)
 		if err != nil {
 			return errors.New("gtg returned a non-200 HTTP status")
 		}
@@ -80,6 +75,6 @@ func (api *contentAPI) GTG() error {
 	return nil
 }
 
-func (api *contentAPI) Endpoint() string {
+func (api *API) Endpoint() string {
 	return api.endpoint
 }

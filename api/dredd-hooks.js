@@ -1,4 +1,4 @@
-var hooks = require('hooks');
+const hooks = require('hooks');
 
 hooks.beforeEach(function (transaction) {
     if (transaction.name.startsWith("Health > /__gtg") || transaction.name.startsWith("Draft Content >")) {

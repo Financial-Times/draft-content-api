@@ -1,15 +1,15 @@
 content-types:
   "application/vnd.ft-upp-live-blog-post+json":
-    mapper: "spark"
+    validator: "spark"
     end-point: "http://upp-live-blog-post-validator:8080"
   "application/vnd.ft-upp-live-blog-package+json":
-    mapper: "spark"
+    validator: "spark"
     end-point: "http://upp-live-blog-package-validator:8080"   
   "application/vnd.ft-upp-article+json":
-    mapper: "spark"
+    validator: "spark"
     end-point: "http://upp-article-validator:8080"
   "application/vnd.ft-upp-content-placeholder+json":
-    mapper: "spark"
+    validator: "spark"
     end-point: "http://upp-content-placeholder-validator:8080"
 end-point-health-checks:
   "http://upp-live-blog-post-validator:8080":

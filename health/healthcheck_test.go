@@ -3,7 +3,7 @@ package health
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-var mockConfig config.Config = config.Config{
+var mockConfig = config.Config{
 	HealthChecks: map[string]config.HealthCheckConfig{
 		"http://cool.api.ft.com/content": {
 			ID:               "TestId",
@@ -152,7 +152,7 @@ func TestUnhappyGTG(t *testing.T) {
 	resp := w.Result()
 
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Equal(t, "computer says no", string(body))
 

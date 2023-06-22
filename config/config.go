@@ -1,19 +1,19 @@
 package config
 
 import (
-	"io/ioutil"
+	"os"
 
 	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
-	ContentTypes map[string]MappingConfig     `yaml:"content-types"`
+	ContentTypes map[string]ValidatorConfig   `yaml:"content-types"`
 	HealthChecks map[string]HealthCheckConfig `yaml:"end-point-health-checks"`
 }
 
-type MappingConfig struct {
-	Mapper   string `yaml:"mapper"`
-	Endpoint string `yaml:"end-point"`
+type ValidatorConfig struct {
+	Validator string `yaml:"validator"`
+	Endpoint  string `yaml:"end-point"`
 }
 
 type HealthCheckConfig struct {
@@ -27,12 +27,12 @@ type HealthCheckConfig struct {
 }
 
 func ReadConfig(yml string) (*Config, error) {
-	by, err := ioutil.ReadFile(yml)
+	by, err := os.ReadFile(yml)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg := &Config{make(map[string]MappingConfig), make(map[string]HealthCheckConfig)}
+	cfg := &Config{make(map[string]ValidatorConfig), make(map[string]HealthCheckConfig)}
 	err = yaml.Unmarshal(by, cfg)
 	if err != nil {
 		cfg = nil

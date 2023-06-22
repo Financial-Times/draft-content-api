@@ -10,7 +10,7 @@ Copy (if there is one) the text of the original Trello/JIRA ticket in here, with
 
 ## Anything, in particular, you'd like to highlight to reviewers
 
-Mention here sections of code which you would like reviewers to pay extra attention to .E.g
+Mention here sections of code which you would like reviewers to pay extra attention to .E.g.
 
 _Would appreciate a second pair of eyes on the test_  
 _I am not quite sure how this bit works_  

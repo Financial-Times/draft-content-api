@@ -28,7 +28,7 @@ Download the source code, dependencies and test dependencies:
 
         $GOPATH/bin/draft-content-api [--help]
 
-Options:
+    Options:
 
         --app-system-code="draft-content-api"     System Code of the application ($APP_SYSTEM_CODE)
         --app-name="draft-content-api"            Application name ($APP_NAME)
@@ -38,7 +38,7 @@ Options:
         --content-endpoint="..."                  Endpoint to get content from CAPI ($CONTENT_ENDPOINT)
         --content-api-key="..."                   API key to access CAPI ($CAPI_APIKEY)
         --api-yml="..."                           Location of the API Swagger YML file ($API_YML)
-        --mapper-yml="..."                        Location of the mapper YML file (MAPPER_YML)
+        --validator-yml="..."                     Location of the validator YML file (VALIDATOR_YML)
         --origin-IDs="..."                        Allowed originID header ($ORIGIN_IDS)
 
 3. Test:
@@ -47,9 +47,9 @@ Options:
 
             curl http://localhost:8080/drafts/content/b7b871f6-8a89-11e4-8e24-00144feabdc0 | json_pp
 
-    1. Or using [httpie](https://github.com/jkbrzt/httpie):
+    2. Or using [httpie](https://github.com/jkbrzt/httpie):
 
-            http GET http://localhost:8080/drafts/content/b7b871f6-8a89-11e4-8e24-00144feabdc0
+             http GET http://localhost:8080/drafts/content/b7b871f6-8a89-11e4-8e24-00144feabdc0
 
 ## Build and deployment
 
@@ -92,13 +92,13 @@ Admin endpoints are:
 
 The `/__health` and `/__gtg` check the availability of:
 * the generic R/W service (where draft content is stored in native format)
-* the draft content mapper service (where draft content is mapped from native to UPP format)
+* the draft content validator service (where draft content is validated for UPP format)
 * the UPP Content API (where published content is stored)
 
 
 ### Logging
 
-* The application uses [logrus](https://github.com/sirupsen/logrus); the log file is initialised in [main.go](main.go).
+* The application uses [go-logger](https://github.com/Financial-Times/go-logger); the log file is initialised in [main.go](main.go).
 * Logging requires an `env` app parameter, for all environments other than `local` logs are written to file.
 * When running locally, logs are written to console. If you want to log locally to file, you need to pass in an env parameter that is != `local`.
 * NOTE: `/__build-info` and `/__gtg` endpoints are not logged as they are called every second from varnish/vulcand and this information is not needed in logs/splunk.

@@ -14,3 +14,5 @@ resources:
     memory: 10Mi
   limits:
     memory: 128Mi
+env:
+  LOG_LEVEL: "INFO"

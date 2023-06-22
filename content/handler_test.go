@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Financial-Times/go-ft-http/fthttp"
+	"github.com/Financial-Times/go-logger/v2"
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 	"github.com/google/uuid"
 	"github.com/husobee/vestigo"
@@ -30,16 +30,16 @@ const (
 )
 
 type mockDraftContentRW struct {
-	mock.Mock
+	mock mock.Mock
 }
 
 func TestHappyRead(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
 	rw := &mockDraftContentRW{}
-	rw.On("Read", mock.Anything, contentUUID).Return(ioutil.NopCloser(strings.NewReader(fromUppContent)), nil)
+	rw.mock.On("Read", mock.Anything, contentUUID).Return(io.NopCloser(strings.NewReader(fromUppContent)), nil)
 
-	h := NewHandler(nil, rw, testTimeout)
+	h := NewHandler(nil, rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -53,12 +53,12 @@ func TestHappyRead(t *testing.T) {
 		err := resp.Body.Close()
 		assert.NoError(t, err)
 	}()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.NoError(t, err)
 	assert.Equal(t, fromUppContent, string(body))
-	rw.AssertExpectations(t)
+	rw.mock.AssertExpectations(t)
 }
 
 func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
@@ -66,13 +66,15 @@ func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 	mainImageUUID := "fba9884e-0756-11e8-0074-38e932af9738"
 
 	rw := &mockDraftContentRW{}
-	rw.On("Read", mock.Anything, contentUUID).Return(nil, ErrDraftNotFound)
+	rw.mock.On("Read", mock.Anything, contentUUID).Return(nil, ErrDraftNotFound)
 
 	cAPIServerMock := newContentAPIServerMock(t, http.StatusOK, fromUppContent)
 	defer cAPIServerMock.Close()
-	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, testClient)
 
-	h := NewHandler(cAPI, rw, testTimeout)
+	h := NewHandler(cAPI, rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -86,7 +88,7 @@ func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 		err := resp.Body.Close()
 		assert.NoError(t, err)
 	}()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.NoError(t, err)
@@ -97,7 +99,7 @@ func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 
 	assert.Equal(t, contentUUID, actual["uuid"])
 	assert.Equal(t,
-		[]interface{}([]interface{}{map[string]interface{}{"id": "http://api.ft.com/things/dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"}}),
+		[]interface{}{map[string]interface{}{"id": "http://api.ft.com/things/dbb0bdae-1f0c-11e4-b0cb-b2227cce2b54"}},
 		actual["brands"])
 
 	actualBody, present := actual["body"]
@@ -107,16 +109,16 @@ func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 
 	assert.Equal(t, "Article", actual["type"])
 	assert.Equal(t, mainImageUUID, actual["mainImage"])
-	rw.AssertExpectations(t)
+	rw.mock.AssertExpectations(t)
 }
 
 func TestReadNoBackOffForOtherErrors(t *testing.T) {
 	contentUUID := "83a201c6-60cd-11e7-91a7-502f7ee26895"
 
 	rw := &mockDraftContentRW{}
-	rw.On("Read", mock.Anything, contentUUID).Return(nil, errors.New("this should never happen"))
+	rw.mock.On("Read", mock.Anything, contentUUID).Return(nil, errors.New("this should never happen"))
 
-	h := NewHandler(nil, rw, testTimeout)
+	h := NewHandler(nil, rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -130,12 +132,12 @@ func TestReadNoBackOffForOtherErrors(t *testing.T) {
 		err := resp.Body.Close()
 		assert.NoError(t, err)
 	}()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.NoError(t, err)
 	assert.Equal(t, "{\"message\": \"Error reading draft content\"}", string(body))
-	rw.AssertExpectations(t)
+	rw.mock.AssertExpectations(t)
 }
 
 func TestReadNotFoundAnywhere(t *testing.T) {
@@ -143,10 +145,12 @@ func TestReadNotFoundAnywhere(t *testing.T) {
 	defer cAPIServerMock.Close()
 
 	rw := &mockDraftContentRW{}
-	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
+	rw.mock.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
 
-	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-	h := NewHandler(cAPI, rw, testTimeout)
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, testClient)
+	h := NewHandler(cAPI, rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
@@ -157,12 +161,12 @@ func TestReadNotFoundAnywhere(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 	resp := w.Result()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	assert.NoError(t, err)
 	assert.Equal(t, "{\"message\": \"Draft not found\"}", string(body))
-	rw.AssertExpectations(t)
+	rw.mock.AssertExpectations(t)
 }
 
 func TestReadContentAPI504(t *testing.T) {
@@ -170,10 +174,12 @@ func TestReadContentAPI504(t *testing.T) {
 	defer cAPIServerMock.Close()
 
 	rw := &mockDraftContentRW{}
-	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
+	rw.mock.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
 
-	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-	h := NewHandler(cAPI, rw, testTimeout)
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, testClient)
+	h := NewHandler(cAPI, rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -183,19 +189,21 @@ func TestReadContentAPI504(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 	resp := w.Result()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.NoError(t, err)
 	assert.Equal(t, "{\"message\": \"Draft content request processing has timed out\"}", string(body))
-	rw.AssertExpectations(t)
+	rw.mock.AssertExpectations(t)
 }
 
 func TestReadInvalidURL(t *testing.T) {
 	rw := &mockDraftContentRW{}
-	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
-	cAPI := NewContentAPI(":#", testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-	h := NewHandler(cAPI, rw, testTimeout)
+	rw.mock.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	cAPI := NewContentAPI(":#", testAPIKey, testClient)
+	h := NewHandler(cAPI, rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -205,22 +213,24 @@ func TestReadInvalidURL(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 	resp := w.Result()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.NoError(t, err)
 	assert.Contains(t, string(body), "missing protocol scheme")
-	rw.AssertExpectations(t)
+	rw.mock.AssertExpectations(t)
 }
 
 func TestReadConnectionError(t *testing.T) {
 	rw := &mockDraftContentRW{}
-	rw.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
+	rw.mock.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
 	cAPIServerMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	cAPIServerMock.Close()
 
-	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, fthttp.NewClientWithDefaultTimeout("PAC", "awesome-service"))
-	h := NewHandler(cAPI, rw, testTimeout)
+	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
+	assert.NoError(t, err)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, testClient)
+	h := NewHandler(cAPI, rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
 
@@ -230,11 +240,11 @@ func TestReadConnectionError(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 	resp := w.Result()
-	_, err := ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.NoError(t, err)
-	rw.AssertExpectations(t)
+	rw.mock.AssertExpectations(t)
 }
 
 func TestWriteCCTNativeContent(t *testing.T) {
@@ -256,9 +266,9 @@ func TestWriteCCTNativeContent(t *testing.T) {
 
 	rw := mockDraftContentRW{}
 	/* mock.AnythingOfType(...) doesn't work for interfaces: https://github.com/stretchr/testify/issues/519 */
-	rw.On("Write", mock.Anything, contentUUID, &draftBody, headers).Return(nil)
+	rw.mock.On("Write", mock.Anything, contentUUID, &draftBody, headers).Return(nil)
 
-	h := NewHandler(nil, &rw, testTimeout)
+	h := NewHandler(nil, &rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -270,11 +280,11 @@ func TestWriteCCTNativeContent(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 	resp := w.Result()
-	_, err := ioutil.ReadAll(resp.Body)
+	_, err := io.ReadAll(resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.NoError(t, err)
-	rw.AssertExpectations(t)
+	rw.mock.AssertExpectations(t)
 }
 
 func TestWriteSparkNativeContent(t *testing.T) {
@@ -296,9 +306,9 @@ func TestWriteSparkNativeContent(t *testing.T) {
 
 	rw := mockDraftContentRW{}
 	/* mock.AnythingOfType(...) doesn't work for interfaces: https://github.com/stretchr/testify/issues/519 */
-	rw.On("Write", mock.Anything, contentUUID, &draftBody, headers).Return(nil)
+	rw.mock.On("Write", mock.Anything, contentUUID, &draftBody, headers).Return(nil)
 
-	h := NewHandler(nil, &rw, testTimeout)
+	h := NewHandler(nil, &rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -310,17 +320,17 @@ func TestWriteSparkNativeContent(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 	resp := w.Result()
-	_, err := ioutil.ReadAll(resp.Body)
+	_, err := io.ReadAll(resp.Body)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.NoError(t, err)
-	rw.AssertExpectations(t)
+	rw.mock.AssertExpectations(t)
 }
 
 func TestWriteNativeContentInvalidUUID(t *testing.T) {
 	draftBody := "{\"foo\":\"bar\"}"
 
-	h := NewHandler(nil, nil, testTimeout)
+	h := NewHandler(nil, nil, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -343,7 +353,7 @@ func TestWriteNativeContentWithoutOriginSystemId(t *testing.T) {
 	contentUUID := uuid.New().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
-	h := NewHandler(nil, nil /*&rw*/, testTimeout)
+	h := NewHandler(nil, nil /*&rw*/, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -365,7 +375,7 @@ func TestWriteNativeContentInvalidOriginSystemId(t *testing.T) {
 	contentUUID := uuid.New().String()
 	draftBody := "{\"foo\":\"bar\"}"
 
-	h := NewHandler(nil, nil, testTimeout)
+	h := NewHandler(nil, nil, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -397,7 +407,7 @@ func TestWriteNativeContentInvalidContentType(t *testing.T) {
 		contentTypeArticle: {},
 	}
 
-	h := NewHandler(nil, nil, testTimeout)
+	h := NewHandler(nil, nil, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -430,9 +440,9 @@ func TestWriteNativeContentWriteError(t *testing.T) {
 	}
 
 	rw := mockDraftContentRW{}
-	rw.On("Write", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test error from writer"))
+	rw.mock.On("Write", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("test error from writer"))
 
-	h := NewHandler(nil, &rw, testTimeout)
+	h := NewHandler(nil, &rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Put("/drafts/nativecontent/:uuid", h.WriteNativeContent)
 
@@ -450,7 +460,7 @@ func TestWriteNativeContentWriteError(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	assert.Contains(t, response["message"], "Error in writing draft content", "error message")
-	rw.AssertExpectations(t)
+	rw.mock.AssertExpectations(t)
 }
 
 func newContentAPIServerMock(t *testing.T, status int, body string) *httptest.Server {
@@ -461,13 +471,15 @@ func newContentAPIServerMock(t *testing.T, status int, body string) *httptest.Se
 		}
 		assert.Equal(t, testTID, r.Header.Get(tidutils.TransactionIDHeader))
 		w.WriteHeader(status)
-		w.Write([]byte(body))
+		if _, err := w.Write([]byte(body)); err != nil {
+			panic(err)
+		}
 	}))
 	return ts
 }
 
-func (m *mockDraftContentRW) Read(ctx context.Context, contentUUID string) (io.ReadCloser, error) {
-	args := m.Called(ctx, contentUUID)
+func (m *mockDraftContentRW) Read(ctx context.Context, contentUUID string, _ *logger.UPPLogger) (io.ReadCloser, error) {
+	args := m.mock.Called(ctx, contentUUID)
 	var body io.ReadCloser
 	o := args.Get(0)
 	if o != nil {
@@ -476,8 +488,8 @@ func (m *mockDraftContentRW) Read(ctx context.Context, contentUUID string) (io.R
 	return body, args.Error(1)
 }
 
-func (m *mockDraftContentRW) Write(ctx context.Context, contentUUID string, content *string, headers map[string]string) error {
-	args := m.Called(ctx, contentUUID, content, headers)
+func (m *mockDraftContentRW) Write(ctx context.Context, contentUUID string, content *string, headers map[string]string, _ *logger.UPPLogger) error {
+	args := m.mock.Called(ctx, contentUUID, content, headers)
 	return args.Error(0)
 }
 
