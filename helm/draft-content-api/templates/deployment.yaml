@@ -43,16 +43,18 @@ spec:
             configMapKeyRef:
               name: global-config
               key: internal-content-endpoint
+        - name: X_POLICIES
+          value: "{{ .Values.env.X_POLICIES }}"
         - name: APP_TIMEOUT
           valueFrom:
             configMapKeyRef:
               name: timeout-config
               key: draft-content-api-timeout
-        - name: CAPI_APIKEY
+        - name: DELIVERY_BASIC_AUTH
           valueFrom:
             secretKeyRef:
               name: doppler-global-secrets
-              key: DRAFT_CONTENT_API_UPP_API_KEY
+              key: UPP_DELIVERY_CLUSTER_BASIC_AUTH
         - name: LOG_LEVEL
           value: "{{ .Values.env.LOG_LEVEL }}"
         ports:

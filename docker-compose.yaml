@@ -9,6 +9,7 @@ services:
         DRAFT_CONTENT_RW_ENDPOINT: "http://generic-rw-aurora:8080"
         API_YML: "./api.yml"
         VALIDATOR_YML: "./config.yml"
+        DELIVERY_BASIC_AUTH: "username:password"
     ports:
         - "8080:8080"
     depends_on:

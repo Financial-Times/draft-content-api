@@ -31,7 +31,7 @@ func TestReadTimeoutFromDraftContent(t *testing.T) {
 	validatorService := NewSparkDraftContentValidatorService(contentAPITestServer.server.URL, client)
 	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validatorService))
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
-	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
+	uppAPI := NewContentAPI(contentAPITestServer.server.URL, testBasicAuthUsername, testBasicAuthPassword, "", client)
 
 	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond, logger.NewUPPLogger("draft-content-api-test", "debug"))
 
@@ -75,7 +75,7 @@ func TestReadTimeoutFromUPPContent(t *testing.T) {
 	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validatorService))
 
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
-	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
+	uppAPI := NewContentAPI(contentAPITestServer.server.URL, testBasicAuthUsername, testBasicAuthPassword, "", client)
 
 	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond, logger.NewUPPLogger("draft-content-api-test", "debug"))
 
@@ -126,7 +126,7 @@ func TestNativeWriteTimeout(t *testing.T) {
 	resolver := NewDraftContentValidatorResolver(cctOnlyResolverConfig(validatorService))
 
 	contentRWService := NewDraftContentRWService(contentRWTestServer.server.URL, resolver, client)
-	uppAPI := NewContentAPI(contentAPITestServer.server.URL, "awesomely-unique-key", client)
+	uppAPI := NewContentAPI(contentAPITestServer.server.URL, testBasicAuthUsername, testBasicAuthPassword, "", client)
 
 	handler := NewHandler(uppAPI, contentRWService, 150*time.Millisecond, logger.NewUPPLogger("draft-content-api-test", "debug"))
 
