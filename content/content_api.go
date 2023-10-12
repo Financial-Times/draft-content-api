@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	authorizationHeader  = "Authorization"
 	syntheticContentUUID = "4f2f97ea-b8ec-11e4-b8e6-00144feab7de"
 	xPolicyHeader        = "x-policy"
 )
@@ -21,11 +20,11 @@ type API struct {
 	endpoint   string
 	username   string
 	password   string
-	xPolicies  string
+	xPolicies  []string
 	httpClient *http.Client
 }
 
-func NewContentAPI(endpoint string, username string, password string, xPolicies string, httpClient *http.Client) *API {
+func NewContentAPI(endpoint string, username string, password string, xPolicies []string, httpClient *http.Client) *API {
 	return &API{endpoint, username, password, xPolicies, httpClient}
 }
 
@@ -43,7 +42,11 @@ func (api *API) Get(ctx context.Context, contentUUID string, log *logger.UPPLogg
 		getContentLog.WithError(err).Error("Error in creating the http request")
 		return nil, err
 	}
-	apiReq.Header.Set(xPolicyHeader, api.xPolicies)
+
+	for _, policy := range api.xPolicies {
+		apiReq.Header.Add(xPolicyHeader, policy)
+	}
+
 	apiReq.SetBasicAuth(api.username, api.password)
 	if tID != "" {
 		apiReq.Header.Set(tidutils.TransactionIDHeader, tID)

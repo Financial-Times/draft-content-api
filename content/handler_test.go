@@ -73,7 +73,7 @@ func TestReadBackOffWhenNoDraftFoundToContentAPI(t *testing.T) {
 	defer cAPIServerMock.Close()
 	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
 	assert.NoError(t, err)
-	cAPI := NewContentAPI(cAPIServerMock.URL, testBasicAuthUsername, testBasicAuthPassword, "", testClient)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testBasicAuthUsername, testBasicAuthPassword, nil, testClient)
 
 	h := NewHandler(cAPI, rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
@@ -150,7 +150,7 @@ func TestReadNotFoundAnywhere(t *testing.T) {
 
 	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
 	assert.NoError(t, err)
-	cAPI := NewContentAPI(cAPIServerMock.URL, testBasicAuthUsername, testBasicAuthPassword, "", testClient)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testBasicAuthUsername, testBasicAuthPassword, nil, testClient)
 	h := NewHandler(cAPI, rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 
 	r := vestigo.NewRouter()
@@ -179,7 +179,7 @@ func TestReadContentAPI504(t *testing.T) {
 
 	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
 	assert.NoError(t, err)
-	cAPI := NewContentAPI(cAPIServerMock.URL, testBasicAuthUsername, testBasicAuthPassword, "", testClient)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testBasicAuthUsername, testBasicAuthPassword, nil, testClient)
 	h := NewHandler(cAPI, rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
@@ -203,7 +203,7 @@ func TestReadInvalidURL(t *testing.T) {
 	rw.mock.On("Read", mock.Anything, mock.AnythingOfType("string")).Return(nil, ErrDraftNotFound)
 	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
 	assert.NoError(t, err)
-	cAPI := NewContentAPI(":#", testBasicAuthUsername, testBasicAuthPassword, "", testClient)
+	cAPI := NewContentAPI(":#", testBasicAuthUsername, testBasicAuthPassword, nil, testClient)
 	h := NewHandler(cAPI, rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)
@@ -230,7 +230,7 @@ func TestReadConnectionError(t *testing.T) {
 
 	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
 	assert.NoError(t, err)
-	cAPI := NewContentAPI(cAPIServerMock.URL, testBasicAuthUsername, testBasicAuthPassword, "", testClient)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testBasicAuthUsername, testBasicAuthPassword, nil, testClient)
 	h := NewHandler(cAPI, rw, testTimeout, logger.NewUPPLogger("test logger", "debug"))
 	r := vestigo.NewRouter()
 	r.Get("/drafts/content/:uuid", h.ReadContent)

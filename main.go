@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -76,7 +77,7 @@ func main() {
 		EnvVar: "CONTENT_ENDPOINT",
 	})
 
-	xPolicies := app.String(cli.StringOpt{
+	xPolicies := app.Strings(cli.StringsOpt{
 		Name:   "x-policies",
 		Desc:   "The x-policies to apply with a request to the UPP Delivery cluster",
 		EnvVar: "X_POLICIES",
@@ -116,10 +117,14 @@ func main() {
 	app.Action = func() {
 		log.Infof("System code: %s, App Name: %s, Port: %s, App Timeout: %sms", *appSystemCode, *appName, *port, *appTimeout)
 
+		err := validateXPolicies(*xPolicies)
+		if err != nil {
+			log.WithError(err).Fatal("invalid content policy")
+		}
+
 		timeout, err := time.ParseDuration(*appTimeout)
 		if err != nil {
-			log.Errorf("App could not start, error=[%s]\n", err)
-			return
+			log.Fatalf("App could not start, error=[%s]\n", err)
 		}
 
 		validatorConfig, err := config.ReadConfig(*validatorYml)
@@ -166,6 +171,15 @@ func main() {
 		log.Errorf("App could not start, error=[%s]\n", err)
 		return
 	}
+}
+
+func validateXPolicies(policies []string) error {
+	for _, policy := range policies {
+		if strings.ContainsAny(policy, " ;") {
+			return fmt.Errorf("policies should not contain spaces or semicolons: '%s'", policy)
+		}
+	}
+	return nil
 }
 
 func extractServices(dcm map[string]content.DraftContentValidator) []health.ExternalService {
