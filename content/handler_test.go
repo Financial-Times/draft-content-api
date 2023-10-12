@@ -2,7 +2,6 @@ package content
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -467,10 +466,17 @@ func TestWriteNativeContentWriteError(t *testing.T) {
 
 func newContentAPIServerMock(t *testing.T, status int, body string) *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if basicAuth := r.Header.Get(authorizationHeader); basicAuth != createBasicAuth(t) {
+		username, password, ok := r.BasicAuth()
+		if !ok {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
+
+		if username != testBasicAuthUsername || password != testBasicAuthPassword {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
 		assert.Equal(t, testTID, r.Header.Get(tidutils.TransactionIDHeader))
 		w.WriteHeader(status)
 		if _, err := w.Write([]byte(body)); err != nil {
@@ -478,11 +484,6 @@ func newContentAPIServerMock(t *testing.T, status int, body string) *httptest.Se
 		}
 	}))
 	return ts
-}
-
-func createBasicAuth(t *testing.T) string {
-	t.Helper()
-	return "Basic " + base64.StdEncoding.EncodeToString([]byte(strings.Join([]string{testBasicAuthUsername, testBasicAuthPassword}, ":")))
 }
 
 func (m *mockDraftContentRW) Read(ctx context.Context, contentUUID string, _ *logger.UPPLogger) (io.ReadCloser, error) {

@@ -59,12 +59,21 @@ func TestContentAPIGTGConnectionError(t *testing.T) {
 func newContentAPIGTGServerMock(t *testing.T, status int, body string) *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/content/"+syntheticContentUUID, r.URL.Path)
-		if basicAuth := r.Header.Get(authorizationHeader); basicAuth != createBasicAuth(t) {
+		username, password, ok := r.BasicAuth()
+		if !ok {
 			w.WriteHeader(http.StatusUnauthorized)
 			_, err := w.Write([]byte("unauthorized"))
 			assert.NoError(t, err)
 			return
 		}
+
+		if username != testBasicAuthUsername || password != testBasicAuthPassword {
+			w.WriteHeader(http.StatusUnauthorized)
+			_, err := w.Write([]byte("unauthorized"))
+			assert.NoError(t, err)
+			return
+		}
+
 		w.WriteHeader(status)
 		_, err := w.Write([]byte(body))
 		assert.NoError(t, err)
