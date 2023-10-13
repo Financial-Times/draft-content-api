@@ -11,18 +11,21 @@ import (
 	tidutils "github.com/Financial-Times/transactionid-utils-go"
 )
 
-const apiKeyHeader = "X-Api-Key"
-
-const syntheticContentUUID = "4f2f97ea-b8ec-11e4-b8e6-00144feab7de"
+const (
+	syntheticContentUUID = "4f2f97ea-b8ec-11e4-b8e6-00144feab7de"
+	xPolicyHeader        = "x-policy"
+)
 
 type API struct {
 	endpoint   string
-	apiKey     string
+	username   string
+	password   string
+	xPolicies  []string
 	httpClient *http.Client
 }
 
-func NewContentAPI(endpoint string, apiKey string, httpClient *http.Client) *API {
-	return &API{endpoint, apiKey, httpClient}
+func NewContentAPI(endpoint string, username string, password string, xPolicies []string, httpClient *http.Client) *API {
+	return &API{endpoint, username, password, xPolicies, httpClient}
 }
 
 func (api *API) Get(ctx context.Context, contentUUID string, log *logger.UPPLogger) (*http.Response, error) {
@@ -35,13 +38,16 @@ func (api *API) Get(ctx context.Context, contentUUID string, log *logger.UPPLogg
 	getContentLog = getContentLog.WithField(tidutils.TransactionIDHeader, tID)
 
 	apiReq, err := http.NewRequest("GET", apiReqURI, nil)
-
 	if err != nil {
 		getContentLog.WithError(err).Error("Error in creating the http request")
 		return nil, err
 	}
 
-	apiReq.Header.Set(apiKeyHeader, api.apiKey)
+	for _, policy := range api.xPolicies {
+		apiReq.Header.Add(xPolicyHeader, policy)
+	}
+
+	apiReq.SetBasicAuth(api.username, api.password)
 	if tID != "" {
 		apiReq.Header.Set(tidutils.TransactionIDHeader, tID)
 	}
@@ -57,7 +63,7 @@ func (api *API) GTG() error {
 		return fmt.Errorf("gtg request error: %v", err.Error())
 	}
 
-	apiReq.Header.Set(apiKeyHeader, api.apiKey)
+	apiReq.SetBasicAuth(api.username, api.password)
 
 	apiResp, err := api.httpClient.Do(apiReq)
 	if err != nil {

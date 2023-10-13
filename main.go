@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -62,18 +63,24 @@ func main() {
 		EnvVar: "DRAFT_CONTENT_RW_ENDPOINT",
 	})
 
+	deliveryBasicAuth := app.String(cli.StringOpt{
+		Name:   "delivery-basic-auth",
+		Value:  "username:password",
+		Desc:   "Basic auth for access to the delivery UPP clusters",
+		EnvVar: "DELIVERY_BASIC_AUTH",
+	})
+
 	contentEndpoint := app.String(cli.StringOpt{
 		Name:   "content-endpoint",
-		Value:  "http://test.api.ft.com/content",
+		Value:  "http://localhost:8081/content",
 		Desc:   "Endpoint to get content from CAPI",
 		EnvVar: "CONTENT_ENDPOINT",
 	})
 
-	contentAPIKey := app.String(cli.StringOpt{
-		Name:   "content-api-key",
-		Value:  "",
-		Desc:   "API key to access CAPI",
-		EnvVar: "CAPI_APIKEY",
+	xPolicies := app.Strings(cli.StringsOpt{
+		Name:   "x-policies",
+		Desc:   "The x-policies to apply with a request to the UPP Delivery cluster",
+		EnvVar: "X_POLICIES",
 	})
 
 	apiYml := app.String(cli.StringOpt{
@@ -110,10 +117,14 @@ func main() {
 	app.Action = func() {
 		log.Infof("System code: %s, App Name: %s, Port: %s, App Timeout: %sms", *appSystemCode, *appName, *port, *appTimeout)
 
+		err := validateXPolicies(*xPolicies)
+		if err != nil {
+			log.WithError(err).Fatal("invalid content policy")
+		}
+
 		timeout, err := time.ParseDuration(*appTimeout)
 		if err != nil {
-			log.Errorf("App could not start, error=[%s]\n", err)
-			return
+			log.Fatalf("App could not start, error=[%s]\n", err)
 		}
 
 		validatorConfig, err := config.ReadConfig(*validatorYml)
@@ -139,8 +150,12 @@ func main() {
 		draftContentRWService := content.NewDraftContentRWService(*contentRWEndpoint, resolver, httpClient)
 
 		content.AllowedContentTypes = getAllowedContentType(validatorConfig)
+		basicAuthCredentials := strings.Split(*deliveryBasicAuth, ":")
+		if len(basicAuthCredentials) != 2 {
+			log.Fatal("error while resolving basic auth")
+		}
 
-		cAPI := content.NewContentAPI(*contentEndpoint, *contentAPIKey, httpClient)
+		cAPI := content.NewContentAPI(*contentEndpoint, basicAuthCredentials[0], basicAuthCredentials[1], *xPolicies, httpClient)
 
 		contentHandler := content.NewHandler(cAPI, draftContentRWService, timeout, log)
 		healthService, err := health.NewHealthService(*appSystemCode, *appName, defaultAppDescription, draftContentRWService, cAPI,
@@ -156,6 +171,15 @@ func main() {
 		log.Errorf("App could not start, error=[%s]\n", err)
 		return
 	}
+}
+
+func validateXPolicies(policies []string) error {
+	for _, policy := range policies {
+		if strings.ContainsAny(policy, " ;") {
+			return fmt.Errorf("policies should not contain spaces or semicolons: '%s'", policy)
+		}
+	}
+	return nil
 }
 
 func extractServices(dcm map[string]content.DraftContentValidator) []health.ExternalService {

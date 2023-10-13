@@ -147,7 +147,6 @@ func (h *Handler) WriteNativeContent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) readContentFromUPP(ctx context.Context, w http.ResponseWriter, contentId string) {
-
 	readContentUPPLog := h.log.WithField(tidutils.TransactionIDHeader, ctx.Value(tidutils.TransactionIDHeader)).WithField("uuid", contentId)
 	readContentUPPLog.Warn("Draft not found in PAC, trying UPP")
 	uppResp, err := h.uppContentAPI.Get(ctx, contentId, h.log)

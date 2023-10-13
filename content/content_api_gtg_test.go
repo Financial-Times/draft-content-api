@@ -15,7 +15,7 @@ func TestHappyContentAPIGTG(t *testing.T) {
 
 	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
 	assert.NoError(t, err)
-	cAPI := NewContentAPI(cAPIServerMock.URL+"/content", testAPIKey, testClient)
+	cAPI := NewContentAPI(cAPIServerMock.URL+"/content", testBasicAuthUsername, testBasicAuthPassword, nil, testClient)
 	assert.NoError(t, cAPI.GTG())
 }
 
@@ -25,7 +25,7 @@ func TestUnhappyContentAPIGTG(t *testing.T) {
 
 	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
 	assert.NoError(t, err)
-	cAPI := NewContentAPI(cAPIServerMock.URL+"/content", testAPIKey, testClient)
+	cAPI := NewContentAPI(cAPIServerMock.URL+"/content", testBasicAuthUsername, testBasicAuthPassword, nil, testClient)
 	assert.EqualError(t, cAPI.GTG(), "gtg returned a non-200 HTTP status: 503 - I not am happy!")
 }
 
@@ -35,14 +35,14 @@ func TestContentAPIGTGWrongAPIKey(t *testing.T) {
 
 	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
 	assert.NoError(t, err)
-	cAPI := NewContentAPI(cAPIServerMock.URL+"/content", "a-non-existing-key", testClient)
+	cAPI := NewContentAPI(cAPIServerMock.URL+"/content", "a-non-existing-username", "a-non-existing-password", nil, testClient)
 	assert.EqualError(t, cAPI.GTG(), "gtg returned a non-200 HTTP status: 401 - unauthorized")
 }
 
 func TestContentAPIGTGInvalidURL(t *testing.T) {
 	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
 	assert.NoError(t, err)
-	cAPI := NewContentAPI(":#", testAPIKey, testClient)
+	cAPI := NewContentAPI(":#", testBasicAuthUsername, testBasicAuthPassword, nil, testClient)
 	assert.Error(t, cAPI.GTG(), "Missing protocol scheme in gtg request")
 }
 
@@ -52,19 +52,28 @@ func TestContentAPIGTGConnectionError(t *testing.T) {
 
 	testClient, err := fthttp.NewClient(fthttp.WithSysInfo("PAC", "awesome-service"))
 	assert.NoError(t, err)
-	cAPI := NewContentAPI(cAPIServerMock.URL, testAPIKey, testClient)
+	cAPI := NewContentAPI(cAPIServerMock.URL, testBasicAuthUsername, testBasicAuthPassword, nil, testClient)
 	assert.Error(t, cAPI.GTG())
 }
 
 func newContentAPIGTGServerMock(t *testing.T, status int, body string) *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/content/"+syntheticContentUUID, r.URL.Path)
-		if apiKey := r.Header.Get(apiKeyHeader); apiKey != testAPIKey {
+		username, password, ok := r.BasicAuth()
+		if !ok {
 			w.WriteHeader(http.StatusUnauthorized)
 			_, err := w.Write([]byte("unauthorized"))
 			assert.NoError(t, err)
 			return
 		}
+
+		if username != testBasicAuthUsername || password != testBasicAuthPassword {
+			w.WriteHeader(http.StatusUnauthorized)
+			_, err := w.Write([]byte("unauthorized"))
+			assert.NoError(t, err)
+			return
+		}
+
 		w.WriteHeader(status)
 		_, err := w.Write([]byte(body))
 		assert.NoError(t, err)
